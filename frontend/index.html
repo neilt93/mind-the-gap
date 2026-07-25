@@ -3,266 +3,381 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mind the Gap — live VLA belief debugger</title>
+<title>Mind the Gap — this robot knows the item will not fit. It tries anyway.</title>
 <style>
   :root {
-    --bg: #0d1117; --panel: #161b22; --border: #30363d;
-    --text: #e6edf3; --dim: #8b949e;
-    --go: #3fb950; --hold: #f85149; --warn: #d29922; --accent: #58a6ff;
+    --bg: #0b0e14; --panel: #131720; --border: #2a3040;
+    --text: #eef2f8; --dim: #93a0b4;
+    --go: #2ea549; --go-bright: #3fd463;
+    --bad: #e5484d; --bad-bright: #ff6166;
+    --warn: #f0b429; --accent: #4c9ffe;
   }
   * { box-sizing: border-box; margin: 0; }
   body {
     background: var(--bg); color: var(--text);
-    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
-    min-height: 100vh; padding: 1.2rem 1.5rem;
+    font: 16px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; padding: 1.1rem 1.4rem 2rem;
+    max-width: 1280px; margin: 0 auto;
   }
-  header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1rem; }
-  h1 { font-size: 1.4rem; }
-  h1 .gap { color: var(--hold); }
-  header p { color: var(--dim); font-size: .9rem; }
-  .controls {
-    display: flex; flex-wrap: wrap; gap: .6rem; align-items: center;
-    margin-bottom: 1rem;
-  }
-  .controls .group-label { color: var(--dim); font-size: .85rem; }
+
+  /* ---------- header ---------- */
+  .brand { font-size: .95rem; font-weight: 800; letter-spacing: .18em;
+           color: var(--accent); }
+  h1 { font-size: clamp(1.5rem, 3.2vw, 2.3rem); line-height: 1.15;
+       margin: .25rem 0 .3rem; }
+  .sub { color: var(--dim); font-size: .95rem; max-width: 60rem; }
+
+  /* ---------- scene switch ---------- */
+  .scene-row { display: flex; gap: .8rem; align-items: center;
+               margin: 1.1rem 0 1rem; flex-wrap: wrap; }
+  .scene-row .ask { color: var(--dim); font-size: .9rem; font-weight: 600;
+                    text-transform: uppercase; letter-spacing: .08em; }
   button.scene {
+    flex: 1; min-width: 220px; padding: 1rem 1.2rem;
+    font-size: 1.15rem; font-weight: 800; letter-spacing: .03em;
     background: var(--panel); color: var(--text);
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: .5rem 1rem; font-size: .95rem; cursor: pointer;
+    border: 2px solid var(--border); border-radius: 12px; cursor: pointer;
+    transition: border-color .15s, transform .05s;
   }
-  button.scene.active { border-color: var(--accent); color: var(--accent); }
-  button.scene:hover { border-color: var(--dim); }
-  select {
-    background: var(--panel); color: var(--text);
-    border: 1px solid var(--border); border-radius: 8px; padding: .45rem .6rem;
+  button.scene:hover { transform: translateY(-1px); }
+  button.scene.fits.active { border-color: var(--go-bright); color: var(--go-bright); }
+  button.scene.nofit.active { border-color: var(--bad-bright); color: var(--bad-bright); }
+  .layer-tag {
+    margin-left: auto; font-size: .8rem; font-weight: 700;
+    letter-spacing: .06em; padding: .4rem .7rem; border-radius: 7px;
   }
-  .gate-toggle { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
-  .switch { position: relative; width: 46px; height: 24px; }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .slider {
-    position: absolute; inset: 0; background: var(--border);
-    border-radius: 24px; cursor: pointer; transition: .2s;
-  }
-  .slider::before {
-    content: ""; position: absolute; height: 18px; width: 18px;
-    left: 3px; top: 3px; background: var(--text); border-radius: 50%;
-    transition: .2s;
-  }
-  .switch input:checked + .slider { background: var(--go); }
-  .switch input:checked + .slider::before { transform: translateX(22px); }
+  .layer-tag.off { color: var(--bad-bright); border: 1px solid var(--bad); }
+  .layer-tag.on { color: var(--go-bright); border: 1px solid var(--go); }
 
-  .grid {
-    display: grid; gap: 1rem;
-    grid-template-columns: minmax(280px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1fr);
+  /* ---------- main grid ---------- */
+  .main { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1rem; }
+  @media (max-width: 900px) { .main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--border);
+           border-radius: 14px; padding: 1rem; }
+  .panel .tag {
+    font-size: .72rem; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: .6rem;
+    display: flex; align-items: center; gap: .5rem;
   }
-  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
-  .panel {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 10px; padding: 1rem;
-  }
-  .panel h2 {
-    font-size: .8rem; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--dim); margin-bottom: .7rem;
-  }
-  .frame-wrap { position: relative; }
-  .frame-wrap img {
-    width: 100%; border-radius: 6px; display: block;
-    background: #000; min-height: 200px;
-  }
-  .frame-cap { color: var(--dim); font-size: .8rem; margin-top: .5rem; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%;
+              background: var(--bad-bright); animation: blink 1.4s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
 
-  .belief-verdict { font-size: 1.25rem; font-weight: 700; margin-bottom: .6rem; }
-  .belief-verdict.fits { color: var(--go); }
-  .belief-verdict.hazard { color: var(--hold); }
-  .gauge { position: relative; height: 46px; margin: 0.4rem 0 0.2rem; }
-  .gauge-track {
-    position: absolute; top: 18px; left: 0; right: 0; height: 10px;
-    border-radius: 5px;
-    background: linear-gradient(90deg, var(--go) 0 55%, var(--warn) 55% 62%, var(--hold) 62% 100%);
-    opacity: .55;
+  /* camera crop */
+  .cam {
+    position: relative; overflow: hidden; border-radius: 10px;
+    aspect-ratio: 16 / 10; background: #000;
   }
-  .gauge-zero {
-    position: absolute; top: 10px; height: 26px; width: 2px;
-    background: var(--text); opacity: .8;
+  .cam img {
+    position: absolute; width: 165%; left: -35%; top: -38%;
+    filter: saturate(1.05);
   }
-  .gauge-needle {
-    position: absolute; top: 6px; height: 34px; width: 4px;
-    background: var(--text); border-radius: 2px;
-    transition: left .5s cubic-bezier(.2, .8, .2, 1);
-    box-shadow: 0 0 8px rgba(255,255,255,.5);
+  .callout {
+    position: absolute; font-size: .78rem; font-weight: 800;
+    letter-spacing: .06em; padding: .18rem .55rem; border-radius: 6px;
+    background: rgba(10, 12, 18, .82); border: 1px solid var(--dim);
+    color: var(--text); white-space: nowrap;
   }
-  .gauge-labels {
-    display: flex; justify-content: space-between;
-    color: var(--dim); font-size: .75rem;
+  .callout::after {
+    content: ""; position: absolute; left: 50%; top: 100%;
+    border: 6px solid transparent; border-top-color: rgba(10,12,18,.82);
+    transform: translateX(-50%);
   }
-  .logit-num { font-size: .95rem; color: var(--dim); margin-top: .4rem; }
-  .logit-num b { color: var(--text); font-size: 1.1rem; }
+  .callout.bad { border-color: var(--bad-bright); color: var(--bad-bright); }
 
-  .decision-badge {
-    display: inline-block; margin-top: .8rem; padding: .35rem 1rem;
-    border-radius: 8px; font-weight: 800; font-size: 1.3rem;
-    letter-spacing: .05em;
+  /* belief / plan statements */
+  .statement { margin-bottom: 1.1rem; }
+  .statement .big {
+    font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 900;
+    letter-spacing: .02em; line-height: 1.1;
   }
-  .decision-badge.go { background: rgba(63,185,80,.15); color: var(--go); border: 1px solid var(--go); }
-  .decision-badge.hold { background: rgba(248,81,73,.15); color: var(--hold); border: 1px solid var(--hold); }
-  .decision-badge.off { background: rgba(139,148,158,.12); color: var(--dim); border: 1px solid var(--border); }
+  .big.fits { color: var(--go-bright); }
+  .big.nofit { color: var(--bad-bright); }
+  .big.plan { color: var(--text); }
+  .big.plan.anyway { color: var(--warn); }
+  .statement .note { color: var(--dim); font-size: .9rem; margin-top: .25rem; }
+  .readout-meta { color: var(--dim); font-size: .78rem; margin-top: .4rem; }
 
-  .axes { display: flex; flex-direction: column; gap: .45rem; }
-  .axis { display: grid; grid-template-columns: 58px 1fr 70px; gap: .5rem; align-items: center; }
-  .axis .name { color: var(--dim); font-size: .8rem; font-family: ui-monospace, monospace; }
-  .bar-track {
-    position: relative; height: 12px; background: var(--bg);
-    border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  /* ---------- verdict band ---------- */
+  .band { margin-top: 1rem; border-radius: 14px; padding: 1.1rem 1.3rem;
+          display: none; }
+  .band h2 { font-size: clamp(1.2rem, 2.4vw, 1.7rem); font-weight: 900; }
+  .band p { margin-top: .3rem; }
+  .band.agree { display: block; background: rgba(46,165,73,.1);
+                border: 1px solid var(--go); }
+  .band.agree h2 { color: var(--go-bright); }
+  .band.gap { display: block; background: rgba(229,72,77,.12);
+              border: 2px solid var(--bad-bright);
+              animation: alarm 1.2s ease-in-out infinite; }
+  .band.gap h2 { color: var(--bad-bright); }
+  @keyframes alarm { 50% { border-color: rgba(229,72,77,.35); } }
+  .band.saved { display: block; background: rgba(46,165,73,.12);
+                border: 2px solid var(--go-bright); }
+  .band.saved h2 { color: var(--go-bright); }
+  .use-btn {
+    display: block; width: 100%; margin-top: 1rem; padding: 1.05rem;
+    font-size: 1.25rem; font-weight: 900; letter-spacing: .04em;
+    color: #fff; background: var(--accent); border: 0; border-radius: 12px;
+    cursor: pointer; box-shadow: 0 6px 24px rgba(76,159,254,.35);
   }
-  .bar-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); }
-  .bar-fill {
-    position: absolute; top: 1px; bottom: 1px; background: var(--accent);
-    border-radius: 4px; transition: all .4s;
-  }
-  .bar-fill.vetoed { background: var(--border); }
-  .axis .val { font-family: ui-monospace, monospace; font-size: .78rem; color: var(--dim); text-align: right; }
+  .use-btn:hover { filter: brightness(1.1); }
+  .saved-facts { display: flex; gap: 1.6rem; flex-wrap: wrap; margin-top: .7rem; }
+  .saved-facts div { font-size: .95rem; }
+  .saved-facts b { display: block; font-size: .78rem; color: var(--dim);
+                   text-transform: uppercase; letter-spacing: .08em; }
+  .disconnect { margin-top: .8rem; background: none; border: 0;
+                color: var(--dim); font-size: .8rem; cursor: pointer;
+                text-decoration: underline; }
 
-  .contradiction {
-    margin-top: 1rem; padding: .8rem 1rem; border-radius: 8px;
-    border: 1px solid var(--warn); background: rgba(210,153,34,.1);
-    color: var(--warn); font-size: .95rem; display: none;
+  /* ---------- replay ---------- */
+  .replay { margin-top: 1rem; }
+  .replay video { width: 100%; border-radius: 10px; background: #000;
+                  display: block; }
+  .replay .caption { margin-top: .5rem; font-size: .92rem; }
+  .replay .caption b { color: var(--text); }
+  .replay .honesty { color: var(--dim); font-size: .78rem; margin-top: .3rem; }
+  .replay .pending {
+    aspect-ratio: 16/9; display: flex; align-items: center;
+    justify-content: center; color: var(--dim); background: #000;
+    border-radius: 10px; font-size: .9rem;
   }
-  .contradiction.show { display: block; animation: pulse 1.6s ease-in-out infinite; }
-  .contradiction.vetoed {
-    border-color: var(--go); background: rgba(63,185,80,.08);
-    color: var(--go); animation: none;
-  }
-  @keyframes pulse { 50% { border-color: rgba(210,153,34,.35); } }
 
-  footer { margin-top: 1rem; color: var(--dim); font-size: .8rem; }
-  .status { color: var(--dim); font-size: .85rem; min-width: 130px; }
-  .spinner { color: var(--accent); }
+  /* ---------- engineering drawer ---------- */
+  details { margin-top: 1.2rem; color: var(--dim); }
+  details summary { cursor: pointer; font-size: .85rem; font-weight: 700;
+                    letter-spacing: .06em; text-transform: uppercase; }
+  .eng { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+         gap: 1rem; margin-top: .8rem; font-size: .85rem; }
+  .eng .cell { background: var(--panel); border: 1px solid var(--border);
+               border-radius: 10px; padding: .8rem; }
+  .eng b { color: var(--text); }
+  .axis { display: grid; grid-template-columns: 52px 1fr 64px; gap: .4rem;
+          align-items: center; margin-top: .25rem; }
+  .axis .name { font-family: ui-monospace, monospace; font-size: .75rem; }
+  .bar-track { position: relative; height: 9px; background: var(--bg);
+               border: 1px solid var(--border); border-radius: 5px;
+               overflow: hidden; }
+  .bar-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+             background: var(--border); }
+  .bar-fill { position: absolute; top: 1px; bottom: 1px;
+              background: var(--accent); border-radius: 3px; }
+  .bar-fill.veto { background: var(--border); }
+  .axis .val { font-family: ui-monospace, monospace; font-size: .72rem;
+               text-align: right; }
+  .eng select, .eng button { background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 7px; padding: .3rem .5rem; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Mind <span class="gap">the Gap</span></h1>
-  <p>a live debugger for what a robot policy believes vs. what it does</p>
-</header>
 
-<div class="controls">
-  <span class="group-label">Judge: flip the carton →</span>
-  <span id="scene-buttons"></span>
-  <select id="seed"></select>
-  <span class="status" id="status"></span>
-  <div class="gate-toggle">
-    <span class="group-label">Safety gate</span>
-    <label class="switch">
-      <input type="checkbox" id="gate-on">
-      <span class="slider"></span>
-    </label>
-  </div>
+<div class="brand">MIND THE GAP</div>
+<h1 id="headline">This robot knows the item will not fit. It tries anyway.</h1>
+<p class="sub">Mind the Gap exposes hidden beliefs inside robot policies and
+turns ignored knowledge into a live safety intervention.</p>
+
+<div class="scene-row">
+  <span class="ask">Judge — pick the carton:</span>
+  <button class="scene fits active" id="btn-fits">ITEM FITS</button>
+  <button class="scene nofit" id="btn-nofit">ITEM DOES NOT FIT</button>
+  <span class="layer-tag off" id="layer-tag">SAFETY LAYER DISCONNECTED</span>
 </div>
 
-<div class="grid">
+<div class="main">
   <div class="panel">
-    <h2>What the model sees</h2>
-    <div class="frame-wrap"><img id="frame" alt="scene frame"></div>
-    <div class="frame-cap" id="frame-cap"></div>
-  </div>
-
-  <div class="panel">
-    <h2>Internal belief — “can the item fit?”</h2>
-    <div class="belief-verdict" id="belief-verdict">—</div>
-    <div class="gauge">
-      <div class="gauge-track"></div>
-      <div class="gauge-zero" id="gauge-zero"></div>
-      <div class="gauge-needle" id="needle" style="left:50%"></div>
+    <div class="tag">What the robot sees — validated Isaac frame, fed live to the model</div>
+    <div class="cam">
+      <img id="frame" alt="robot scene">
+      <span class="callout" id="lab-carton" style="left:44%; top:16%;">CARTON</span>
+      <span class="callout bad" id="lab-shallow" style="left:44%; top:34%; display:none;">TOO SHALLOW</span>
+      <span class="callout" id="lab-item" style="left:16%; top:55%;">ITEM</span>
     </div>
-    <div class="gauge-labels"><span>believes it fits</span><span>believes it cannot fit</span></div>
-    <div class="logit-num">probe logit: <b id="logit">—</b>
-      <span id="latency"></span></div>
-    <div id="decision" class="decision-badge off">gate off</div>
-    <div class="contradiction" id="contradiction"></div>
+
+    <div class="replay">
+      <div class="tag">Validated Isaac replay — recorded outcome for this exact condition</div>
+      <video id="replay-video" muted playsinline loop style="display:none"></video>
+      <div class="pending" id="replay-pending">replay loads when a condition is selected</div>
+      <div class="caption" id="replay-caption"></div>
+      <div class="honesty">The robot's camera frame comes from a validated Isaac
+      episode, but the VLA inference, hidden-state readout, planned action,
+      contradiction detection and safety-gate decision are all computed live
+      (~0.8 s forward pass per click). Launching and running the simulator takes
+      several minutes, so we replay the Isaac outcome recorded under this same
+      scene and gate condition. In deployment, this readout runs online during
+      policy inference; for the demo, we replay the slower simulator execution
+      while keeping the model analysis live.</div>
+    </div>
   </div>
 
   <div class="panel">
-    <h2 id="action-title">Planned action (7-DOF)</h2>
-    <div class="axes" id="axes"></div>
+    <div class="statement">
+      <div class="tag"><span class="live-dot"></span> What the robot believes — live hidden-state readout</div>
+      <div class="big fits" id="belief-big">…</div>
+      <div class="note" id="belief-note"></div>
+    </div>
+    <div class="statement">
+      <div class="tag">What the robot plans</div>
+      <div class="big plan" id="plan-big">…</div>
+      <div class="note" id="plan-note"></div>
+    </div>
+    <div class="readout-meta" id="meta"></div>
+
+    <div class="band agree" id="band-agree">
+      <h2>✓ BELIEF AND PLAN AGREE</h2>
+      <p>The item fits, and the robot plans a safe placement.</p>
+    </div>
+
+    <div class="band gap" id="band-gap">
+      <h2>⚠ KNOWLEDGE-ACTION GAP DETECTED</h2>
+      <p>The policy knows the action is unsafe — and plans it anyway.</p>
+      <button class="use-btn" id="use-btn">USE THE ROBOT'S KNOWLEDGE</button>
+    </div>
+
+    <div class="band saved" id="band-saved">
+      <h2>✓ HAZARD PREVENTED</h2>
+      <p>The hidden belief now controls the robot's action.</p>
+      <div class="saved-facts">
+        <div><b>Planned</b> INSERT</div>
+        <div><b>Executed</b> HOLD</div>
+        <div><b>Retraining required</b> NONE</div>
+      </div>
+      <button class="disconnect" id="disconnect-btn">disconnect safety layer</button>
+    </div>
   </div>
 </div>
 
-<footer>
-  The belief readout is a frozen linear probe on the policy's own hidden state — computed live per request.
-  Same forward pass produces the planned action; the gap between the two is the point.
-</footer>
+<details>
+  <summary>Engineering details</summary>
+  <div class="eng">
+    <div class="cell" id="eng-numbers">
+      <b>Live probe readout</b><br>
+      logit <b id="eng-logit">—</b> · recorded-run logit <span id="eng-rec">—</span><br>
+      forward pass <span id="eng-lat">—</span> ms · decision <b id="eng-dec">—</b><br><br>
+      scene variant
+      <select id="eng-seed"><option>13</option><option>14</option><option>15</option><option>16</option></select>
+      <button id="eng-medium">try medium carton</button>
+    </div>
+    <div class="cell">
+      <b>Planned action (7-DOF, raw)</b>
+      <div id="eng-axes"></div>
+    </div>
+    <div class="cell">
+      <b>How it works</b><br>
+      A frozen linear probe (fit during prior research, no retraining tonight)
+      reads one hidden-state row of the VLA on the exact frame it acts from.
+      The same forward pass yields the policy's planned action. The safety
+      layer is that probe run as a GO/HOLD monitor: HOLD zeroes the motion
+      command. Belief and plan disagreeing on the shallow carton is the
+      knowledge-action gap.
+    </div>
+  </div>
+</details>
 
 <script>
 const AXES = ["dx","dy","dz","droll","dpitch","dyaw","gripper"];
-const LOGIT_MIN = -20, LOGIT_MAX = 12;   // display range
 let state = { scene: "control", seed: 13, gateOn: false, last: null };
-
 const $ = id => document.getElementById(id);
 
-function axisRow(name) {
+AXES.forEach(a => {
   const row = document.createElement("div");
   row.className = "axis";
-  row.innerHTML = `<span class="name">${name}</span>
+  row.innerHTML = `<span class="name">${a}</span>
     <div class="bar-track"><div class="bar-mid"></div>
-      <div class="bar-fill" id="bar-${name}" style="left:50%;width:0"></div></div>
-    <span class="val" id="val-${name}">—</span>`;
-  return row;
-}
-AXES.forEach(a => $("axes").appendChild(axisRow(a)));
+    <div class="bar-fill" id="bar-${a}" style="left:50%;width:0"></div></div>
+    <span class="val" id="val-${a}">—</span>`;
+  $("eng-axes").appendChild(row);
+});
 
-function setBar(name, v, scale, vetoed) {
-  const bar = $(`bar-${name}`), val = $(`val-${name}`);
-  const frac = Math.max(-1, Math.min(1, v / scale)) * 50;
-  bar.className = "bar-fill" + (vetoed ? " vetoed" : "");
-  if (frac >= 0) { bar.style.left = "50%"; bar.style.width = frac + "%"; }
-  else { bar.style.left = (50 + frac) + "%"; bar.style.width = (-frac) + "%"; }
-  val.textContent = v.toFixed(4);
+function conf(logit) {
+  const m = Math.abs(logit);
+  return m > 5 ? "Very high" : m > 2 ? "High" : "Moderate";
+}
+
+function replayKey() {
+  if (state.scene === "shallow") return state.gateOn ? "hold_gated" : "unsafe_attempt";
+  if (state.scene === "control") return "go_valid";
+  return null; // medium: no replay clip
+}
+
+const REPLAY_TEXT = {
+  go_valid: "<b>Outcome: item placed successfully.</b> Deep carton — the robot completes the packing task.",
+  unsafe_attempt: "<b>Outcome: unsafe attempt.</b> Safety layer disconnected — the robot carries the item to the too-shallow carton, jams above it, and drops it uncontrolled.",
+  hold_gated: "<b>Outcome: hazard prevented.</b> Safety layer connected — the HOLD verdict stops the robot before any unsafe motion.",
+};
+
+function setReplay() {
+  const key = replayKey();
+  const v = $("replay-video"), p = $("replay-pending"), c = $("replay-caption");
+  if (!key) { v.style.display = "none"; p.style.display = "flex";
+              p.textContent = "no replay for this condition"; c.innerHTML = ""; return; }
+  fetch(`/api/replay/${key}`, {method: "HEAD"}).then(r => {
+    if (r.ok) {
+      v.src = `/api/replay/${key}`; v.style.display = "block";
+      p.style.display = "none"; v.play().catch(() => {});
+      c.innerHTML = REPLAY_TEXT[key];
+    } else {
+      v.style.display = "none"; p.style.display = "flex";
+      p.textContent = "validated replay rendering — available shortly";
+      c.innerHTML = REPLAY_TEXT[key];
+    }
+  }).catch(() => {});
 }
 
 function render() {
   const r = state.last;
   if (!r) return;
   const hazard = r.belief_logit > 0;
-  const v = $("belief-verdict");
-  v.textContent = hazard ? "CANNOT FIT — hazard" : "FITS";
-  v.className = "belief-verdict " + (hazard ? "hazard" : "fits");
 
-  const pct = 100 * (r.belief_logit - LOGIT_MIN) / (LOGIT_MAX - LOGIT_MIN);
-  $("needle").style.left = Math.max(1, Math.min(99, pct)) + "%";
-  $("gauge-zero").style.left = (100 * (0 - LOGIT_MIN) / (LOGIT_MAX - LOGIT_MIN)) + "%";
-  $("logit").textContent = r.belief_logit.toFixed(2);
-  $("latency").textContent = ` · live forward pass ${r.latency_ms} ms`;
+  const bb = $("belief-big");
+  bb.textContent = hazard ? "THE ITEM WILL NOT FIT" : "THE ITEM FITS";
+  bb.className = "big " + (hazard ? "nofit" : "fits");
+  $("belief-note").textContent =
+    `Confidence: ${conf(r.belief_logit)} — read from the policy's own hidden state, live`;
 
-  const gateActive = state.gateOn;
-  const vetoed = gateActive && r.hold;
-  const d = $("decision");
-  if (!gateActive) { d.className = "decision-badge off"; d.textContent = "gate off"; }
-  else if (r.hold) { d.className = "decision-badge hold"; d.textContent = "HOLD — vetoed"; }
-  else { d.className = "decision-badge go"; d.textContent = "GO"; }
+  const planMoves = AXES.slice(0,6).some(a => Math.abs(r.planned_action[a]) > 1e-4);
+  const vetoed = state.gateOn && r.hold;
+  const pb = $("plan-big");
+  if (vetoed) { pb.textContent = "HOLD — DO NOTHING"; pb.className = "big plan"; }
+  else if (planMoves && hazard) { pb.textContent = "PUT IT IN THE CARTON ANYWAY"; pb.className = "big plan anyway"; }
+  else if (planMoves) { pb.textContent = "INSERT INTO CARTON"; pb.className = "big plan"; }
+  else { pb.textContent = "HOLD STILL"; pb.className = "big plan"; }
+  $("plan-note").textContent = vetoed
+    ? "The safety layer vetoed the motion command."
+    : (planMoves ? "The robot's action head still moves toward the carton." : "");
 
+  $("meta").textContent =
+    `LIVE NEURAL READOUT — fresh forward pass, ${r.latency_ms} ms`;
+
+  $("band-agree").style.display = (!hazard) ? "block" : "none";
+  $("band-gap").style.display = (hazard && !state.gateOn) ? "block" : "none";
+  $("band-saved").style.display = (hazard && state.gateOn) ? "block" : "none";
+
+  const lt = $("layer-tag");
+  lt.className = "layer-tag " + (state.gateOn ? "on" : "off");
+  lt.textContent = state.gateOn ? "SAFETY LAYER CONNECTED" : "SAFETY LAYER DISCONNECTED";
+
+  $("lab-shallow").style.display = (state.scene === "shallow") ? "inline" : "none";
+
+  // engineering drawer
+  $("eng-logit").textContent = r.belief_logit.toFixed(2);
+  $("eng-rec").textContent = r.recorded_logit == null ? "n/a" : r.recorded_logit.toFixed(2);
+  $("eng-lat").textContent = r.latency_ms;
+  $("eng-dec").textContent = state.gateOn ? r.decision : r.decision + " (advisory — layer disconnected)";
   const acts = vetoed ? r.executed_action : r.planned_action;
-  $("action-title").textContent = vetoed
-    ? "Executed action (gate vetoed the plan)" : "Planned action (7-DOF)";
   const scale = Math.max(0.05, ...AXES.map(a => Math.abs(r.planned_action[a])));
-  AXES.forEach(a => setBar(a, acts[a], scale, vetoed));
+  AXES.forEach(a => {
+    const frac = Math.max(-1, Math.min(1, acts[a] / scale)) * 50;
+    const bar = $(`bar-${a}`);
+    bar.className = "bar-fill" + (vetoed ? " veto" : "");
+    if (frac >= 0) { bar.style.left = "50%"; bar.style.width = frac + "%"; }
+    else { bar.style.left = (50 + frac) + "%"; bar.style.width = (-frac) + "%"; }
+    $(`val-${a}`).textContent = acts[a].toFixed(4);
+  });
 
-  const c = $("contradiction");
-  const planMoves = AXES.slice(0, 6).some(a => Math.abs(r.planned_action[a]) > 1e-4);
-  if (hazard && planMoves && !vetoed) {
-    c.className = "contradiction show";
-    c.textContent = "⚠ The gap: the model's own hidden state says the item cannot fit — and its action head plans to pack it anyway.";
-  } else if (hazard && vetoed) {
-    c.className = "contradiction show vetoed";
-    c.textContent = "✓ Gate fired: the belief the policy wasn't using now vetoes the unsafe placement.";
-  } else {
-    c.className = "contradiction";
-  }
+  setReplay();
 }
 
 async function refresh() {
-  $("status").innerHTML = '<span class="spinner">running forward pass…</span>';
   $("frame").src = `/api/frame/${state.scene}/${state.seed}?t=${Date.now()}`;
-  $("frame-cap").textContent = `scene: ${state.scene} · variant ${state.seed} — exact frame the policy receives`;
   try {
     const r = await fetch("/api/gate", {
       method: "POST", headers: {"Content-Type": "application/json"},
@@ -270,43 +385,30 @@ async function refresh() {
     });
     if (!r.ok) throw new Error(await r.text());
     state.last = await r.json();
-    $("status").textContent = "";
     render();
-  } catch (e) {
-    $("status").textContent = "engine error";
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
 }
 
-async function init() {
-  const scenes = await (await fetch("/api/scenes")).json();
-  const LABELS = {control: "Deep carton", medium: "Medium carton",
-                  shallow: "Shallow carton (too shallow)"};
-  const sb = $("scene-buttons");
-  scenes.forEach(s => {
-    const b = document.createElement("button");
-    b.className = "scene" + (s.id === state.scene ? " active" : "");
-    b.textContent = LABELS[s.id] || s.label;
-    b.title = s.description;
-    b.onclick = () => {
-      state.scene = s.id;
-      document.querySelectorAll("button.scene").forEach(x => x.classList.remove("active"));
-      b.classList.add("active");
-      refresh();
-    };
-    sb.appendChild(b);
-  });
-  const seedSel = $("seed");
-  (scenes[0]?.seeds || [13]).forEach(s => {
-    const o = document.createElement("option");
-    o.value = s; o.textContent = "variant " + s;
-    seedSel.appendChild(o);
-  });
-  seedSel.onchange = () => { state.seed = parseInt(seedSel.value); refresh(); };
-  $("gate-on").onchange = e => { state.gateOn = e.target.checked; render(); };
+$("btn-fits").onclick = () => {
+  state.scene = "control";
+  $("btn-fits").classList.add("active"); $("btn-nofit").classList.remove("active");
   refresh();
-}
-init();
+};
+$("btn-nofit").onclick = () => {
+  state.scene = "shallow";
+  $("btn-nofit").classList.add("active"); $("btn-fits").classList.remove("active");
+  refresh();
+};
+$("use-btn").onclick = () => { state.gateOn = true; render(); };
+$("disconnect-btn").onclick = () => { state.gateOn = false; render(); };
+$("eng-seed").onchange = e => { state.seed = parseInt(e.target.value); refresh(); };
+$("eng-medium").onclick = () => {
+  state.scene = "medium";
+  $("btn-fits").classList.remove("active"); $("btn-nofit").classList.remove("active");
+  refresh();
+};
+
+refresh();
 </script>
 </body>
 </html>

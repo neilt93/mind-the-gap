@@ -58,6 +58,14 @@ def frame(scene: str, seed: int):
                     status_code=r.status_code)
 
 
+@app.get("/api/replay/{key}")
+@app.head("/api/replay/{key}")
+def replay(key: str):
+    r = httpx.get(f"{ENGINE_URL}/replay/{key}", timeout=60.0)
+    return Response(r.content, media_type="video/mp4",
+                    status_code=r.status_code)
+
+
 @app.get("/api/health")
 def health():
     try:

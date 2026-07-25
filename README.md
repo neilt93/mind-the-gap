@@ -1,6 +1,9 @@
 # Mind the Gap
 
-**A live debugger for the gap between what a robot policy believes and what it does.**
+**This robot knows the item will not fit. It tries anyway.**
+
+Mind the Gap exposes hidden beliefs inside robot policies and turns ignored
+knowledge into a live safety intervention.
 
 Vision-language-action (VLA) policies can carry an internal, linearly-decodable
 belief about the scene — *"this item cannot fit in that carton"* — and still
@@ -14,9 +17,16 @@ doesn't use it. This demo makes that gap visible, live:
    toward the carton, that's the gap, on screen.
 3. **Judge-operated carton flip** — swap the deep carton for a too-shallow one
    and watch the belief flip in real time.
-4. **The gate** — toggle a runtime safety monitor that reads the same frozen
-   probe and vetoes (HOLD) the placement the policy would otherwise attempt.
-   Zero retraining: the belief the policy ignores becomes the safety check.
+4. **The gate** — press "USE THE ROBOT'S KNOWLEDGE": a runtime safety monitor
+   reads the same frozen probe and vetoes (HOLD) the placement the policy
+   would otherwise attempt. Zero retraining: the belief the policy ignores
+   becomes the safety check.
+5. **Validated Isaac replays** — the physical consequence of each condition
+   (successful placement / unsafe jam-and-drop / vetoed hold), recorded in
+   the simulator under the same scene and gate condition and clearly labeled
+   as replays. The VLA forward pass, hidden-state readout, planned action,
+   and GO/HOLD decision are computed live on every click; only the slower
+   simulator execution is replayed.
 
 ## Architecture
 
