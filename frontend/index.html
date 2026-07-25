@@ -344,7 +344,7 @@
   </span>
   <span class="scenes">
     <button id="i-bottle" class="active">BENCHMARK SCENE</button>
-    <button id="i-cube">REFERENCE RUN</button>
+    <button id="i-cube">REAL MODEL RUN</button>
   </span>
 </div>
 
@@ -652,12 +652,12 @@ function render(t) {
   const hazard = dec ? dec.belief_logit > 0 : st.scene === "shallow";
   $("tnow").textContent = `t = ${t.toFixed(1)}s`;
   if (st.item === "cube") {
-    // Official reference scene — no probe story here; honest labels.
-    $("r-sees").textContent = "official Isaac scene: Franka + cube";
-    $("r-belief").textContent = "— (no probe on this scene)";
+    // Real learned VLA on LIBERO — no probe on this domain; honest labels.
+    $("r-sees").textContent = "LIBERO scene: ketchup + basket";
+    $("r-belief").textContent = "— (no probe fit on this domain yet)";
     $("r-belief").className = "v";
-    $("r-plan").textContent = "official pick-place controller";
-    $("r-exec").textContent = "clean pick and place";
+    $("r-plan").textContent = "OpenVLA-OFT — fine-tuned VLA, end-to-end";
+    $("r-exec").textContent = "clean pick and place (episode success)";
     $("r-exec").className = "v";
     $("exec-explain").textContent = "";
     $("exec-explain").className = "explain";
@@ -727,7 +727,7 @@ function render(t) {
 }
 
 async function load(autoplay) {
-  let clip = st.item === "cube" ? "clean_reference" : CLIP[key()];
+  let clip = st.item === "cube" ? "real_model_run" : CLIP[key()];
   $("freeze").classList.remove("show");
   st.frozeOnce = st.mode !== "native";
   try {
@@ -742,7 +742,7 @@ async function load(autoplay) {
   $("moments").innerHTML = st.moments.map(m =>
     `<div class="m ${m.cls}">t=${m.t.toFixed(1)}s  ${m.label}</div>`).join("");
   $("scene-label").textContent = st.item === "cube"
-    ? "OFFICIAL ISAAC REFERENCE RUN — Franka + cube (motion-quality reference, no probe story)"
+    ? "REAL MODEL RUN — OpenVLA-OFT on LIBERO · recorded on this rig · success"
     : `VALIDATED ISAAC RUN — ${st.scene === "shallow" ? "shallow carton" : "deep carton"} · ${st.mode === "wired" ? "safety wire ON" : "native policy"}`;
   const dec = st.trace && st.trace.decision;
   $("eng-dec").textContent = dec
@@ -793,7 +793,7 @@ $("i-bottle").onclick = () => setItem("bottle");
 $("i-cube").onclick = () => setItem("cube");
 // Show the reference tab only when the reference clip exists.
 $("i-bottle").parentElement.style.display = "none";
-fetch("/api/replay/clean_reference", {method: "HEAD"})
+fetch("/api/replay/real_model_run", {method: "HEAD"})
   .then(r => { if (r.ok) $("i-bottle").parentElement.style.display = ""; })
   .catch(() => {});
 $("connect").onclick = () => setMode("wired");
