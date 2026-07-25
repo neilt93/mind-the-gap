@@ -29,6 +29,34 @@ browser (frontend/) ──► proxy backend (proxy/) ──► private engine en
 The engine URL is supplied via the `ENGINE_URL` environment variable — no
 server addresses or credentials live in this repo.
 
+## Context — what existed before tonight, and why
+
+I'm a co-founder at **Cybernetic**, where we build **RoboEval** — an
+evaluation platform and benchmark suite for embodied / VLA manipulation
+policies. One of its benchmarks is **PackingBench**: a robot arm packs
+household items into target cartons in simulation, with carton depth as a
+controlled hazard variable (a too-shallow carton means the item cannot be
+inserted; forcing it jams and drops the item).
+
+In the weeks before this hackathon, our interpretability work on a fine-tuned
+OpenVLA policy for PackingBench found a specific, reproducible gap:
+
+- The policy's hidden state carries a **linearly-decodable belief** about
+  whether the item can fit the carton — a frozen linear probe
+  (StandardScaler + logistic regression) reads it with wide margins.
+- That belief is **behaviorally inert where it matters**: steering it doesn't
+  change behavior, gradient training at the recipes we tried couldn't wire it
+  into the actions, and the action head plans the same placement motion
+  whether or not the belief says *cannot fit*.
+- Wired in as a **frozen runtime monitor**, the same probe cleanly gates
+  behavior: in the pre-hack validation run, hazardous placement attempts went
+  4/4 → 0/4 with the gate on while fit placements stayed 4/4, and the gate's
+  decisions were 10/10 with margins of 7+ logits.
+
+Tonight's hack is the debugger that makes that pre-existing result **visible
+and interactive** — the belief, the contradicting plan, and the gate, live,
+with the carton flip in a judge's hands.
+
 ## Honest provenance split
 
 **Existed before Night Hack (private, referenced over HTTP, not in this repo):**
