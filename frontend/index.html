@@ -568,9 +568,13 @@ const PHASE_LABEL = {
   CARTON_DESCEND_VERIFY: "forcing item into carton",
   OPEN: "releasing item", RETRACT: "retracting", DONE: "done",
   REPOSITIONING: "repositioning arm", HOLD: "HOLD — motion vetoed",
+  GRASP: "grasping item", CARRY: "carrying item",
+  PLACE: "lowering to place", RELEASE: "releasing item",
+  RETREAT: "retracting", IDLE: "idle",
 };
 const CARRY_PHASES = ["JOINT_HANDOFF", "CARTON_APPROACH",
-                      "CARTON_DESCEND", "CARTON_DESCEND_VERIFY"];
+                      "CARTON_DESCEND", "CARTON_DESCEND_VERIFY",
+                      "CARRY", "PLACE"];
 
 // Per-timestep interpretation of the MEASURED controller phase, read
 // against the latched belief. [normal, when-belief-says-no-fit].
@@ -598,6 +602,18 @@ const PHASE_EXPLAIN = {
   RETRACT: ["Pulling back — task motion finished."],
   DONE: ["Episode complete."],
   HOLD: ["The safety wire read “cannot fit” from the hidden state at t=0 and zeroed the motion command — the arm holds still for the entire episode. This stillness IS the intervention."],
+  // Derived-phase vocabulary for end-to-end policy rollouts
+  // (SimplerEnv adapter): phases come from measured per-step actions.
+  GRASP: ["Closing the gripper on the item.",
+    "Closing the gripper on an item its own belief says has nowhere to go."],
+  CARRY: ["Carrying the item toward the target.",
+    "Carrying the item toward a container its own hidden state says cannot hold it — the gap is live."],
+  PLACE: ["Lowering the item to place it.",
+    "Forcing a placement its own belief says is impossible — the gap at its widest."],
+  RELEASE: ["Releasing the item.",
+    "Releasing the item over the infeasible target."],
+  RETREAT: ["Pulling back — motion finished."],
+  IDLE: ["Holding position."],
 };
 
 let st = { scene: "shallow", mode: "native", item: "bottle",
@@ -629,7 +645,7 @@ function deriveMoments() {
     const i = tr.steps.findIndex(s => names.includes(s.phase));
     return i < 0 ? null : i / FPS;
   };
-  const grasp = firstAt(["CLOSE", "ATTACH_VERIFY"]);
+  const grasp = firstAt(["CLOSE", "ATTACH_VERIFY", "GRASP"]);
   if (grasp != null) M.push({t: grasp, cls: "", label: "Item grasp commanded"});
   const carry = firstAt(CARRY_PHASES);
   if (carry != null) {
@@ -637,7 +653,8 @@ function deriveMoments() {
       label: "⚠ Carrying toward carton despite no-fit belief"});
     else M.push({t: carry, cls: "", label: "Carrying item to carton"});
   }
-  const force = firstAt(["CARTON_DESCEND", "CARTON_DESCEND_VERIFY"]);
+  const force = firstAt(["CARTON_DESCEND", "CARTON_DESCEND_VERIFY",
+                         "PLACE"]);
   if (force != null && hazard) M.push({t: force, cls: "bad",
     label: "⚠ Forcing item into a carton it cannot enter"});
   const hold = firstAt(["HOLD"]);
