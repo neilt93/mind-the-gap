@@ -206,6 +206,67 @@
                text-align: right; }
   .eng select, .eng button { background: var(--bg); color: var(--text);
     border: 1px solid var(--border); border-radius: 7px; padding: .3rem .5rem; }
+
+  /* ---------- tabs + explanations view ---------- */
+  .tabs { display: flex; gap: .5rem; margin-top: 1rem; }
+  .tabs button {
+    padding: .55rem 1.1rem; font-size: .9rem; font-weight: 800;
+    letter-spacing: .04em; color: var(--dim); background: var(--panel);
+    border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
+  }
+  .tabs button.active { color: var(--accent); border-color: var(--accent); }
+  .side-handle {
+    position: fixed; right: 0; top: 38%; z-index: 60;
+    writing-mode: vertical-rl; padding: .85rem .5rem;
+    background: var(--accent); color: #fff; font-weight: 800;
+    font-size: .78rem; letter-spacing: .1em; border: 0;
+    border-radius: 10px 0 0 10px; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(0,0,0,.45);
+  }
+  .side-handle:hover { filter: brightness(1.12); }
+  .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 70; }
+  body.how-open .backdrop { opacity: 1; pointer-events: auto; }
+  #how-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 80;
+    width: min(600px, 94vw); background: var(--bg);
+    border-left: 1px solid var(--border);
+    transform: translateX(103%); transition: transform .25s ease;
+    overflow-y: auto; padding: 1rem 1.2rem 2.5rem;
+  }
+  body.how-open #how-drawer { transform: translateX(0); }
+  .drawer-head { display: flex; align-items: center; gap: .8rem;
+    position: sticky; top: 0; background: var(--bg); padding: .4rem 0 .6rem;
+    border-bottom: 1px solid var(--border); }
+  .drawer-head h2 { font-size: 1.05rem; }
+  .drawer-close { margin-left: auto; background: var(--panel);
+    color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+    padding: .35rem .75rem; cursor: pointer; font-weight: 800; }
+  .xp {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.1rem 1.2rem; margin-top: 1.1rem;
+  }
+  .xp h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: .5rem; }
+  .xp p, .xp li { font-size: .92rem; color: var(--text); }
+  .xp p + p { margin-top: .55rem; }
+  .xp ul { margin: .4rem 0 0 1.1rem; }
+  .xp li + li { margin-top: .35rem; }
+  .xp .q { font-weight: 800; margin-top: .8rem; }
+  .xp .q:first-of-type { margin-top: 0; }
+  .xp .a { color: var(--dim); font-size: .9rem; margin-top: .15rem; }
+  .xp table { width: 100%; border-collapse: collapse; margin-top: .5rem;
+              font-size: .88rem; }
+  .xp th, .xp td { text-align: left; padding: .45rem .5rem;
+                   border-bottom: 1px solid var(--border); }
+  .xp th { color: var(--dim); font-size: .72rem; text-transform: uppercase;
+           letter-spacing: .08em; }
+  .xp dt { font-weight: 800; margin-top: .6rem; font-size: .9rem; }
+  .xp dd { color: var(--dim); font-size: .88rem; margin-left: 0; }
+  .xp code { background: var(--bg); border: 1px solid var(--border);
+             border-radius: 5px; padding: .05rem .35rem; font-size: .85em; }
+  .hl-good { color: var(--go-bright); font-weight: 700; }
+  .hl-bad { color: var(--bad-bright); font-weight: 700; }
+  .hl-warn { color: var(--warn); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -216,6 +277,10 @@
 A frozen probe reads what that network <i>believes</i> mid-inference.
 Below: its belief, its plan, the contradiction — and the fix. Follow the
 steps top to bottom.</p>
+
+<div class="tabs">
+  <button id="tab-how">? HOW IT ALL WORKS — open the project explainer</button>
+</div>
 
 <!-- ======================= STEP 1 ======================= -->
 <div class="step">
@@ -367,6 +432,182 @@ steps top to bottom.</p>
     </div>
   </div>
 </details>
+
+<button class="side-handle" id="side-handle">? ABOUT THIS PROJECT</button>
+<div class="backdrop" id="backdrop"></div>
+
+<aside id="how-drawer">
+  <div class="drawer-head">
+    <h2>Mind the Gap — how it all works</h2>
+    <button class="drawer-close" id="drawer-close">✕ close</button>
+  </div>
+
+  <div class="xp">
+    <h2>The whole project in one paragraph</h2>
+    <p>A robot-arm policy (a vision-language-action network) looks at a table
+    and outputs arm motions. In research before this hackathon we found that,
+    while it acts, its internal activations contain a confident, linearly
+    readable <b>belief</b> about whether the item can fit the carton — and
+    that when the carton is too shallow, the policy
+    <span class="hl-warn">plans the packing motion anyway</span>. This demo
+    reads that belief live on every click, shows the contradiction, and then
+    wires the same belief into a <b>GO/HOLD veto</b> that stops the hazardous
+    placement. <span class="hl-good">No retraining anywhere.</span></p>
+  </div>
+
+  <div class="xp">
+    <h2>The cast</h2>
+    <ul>
+      <li><b>The world:</b> a packing table in the NVIDIA Isaac simulator.
+        Task: <i>“pack the bottle into the carton.”</i></li>
+      <li><b>The robot:</b> an SO-101 arm driven end-to-end by the policy —
+        no scripted motions in the loop.</li>
+      <li><b>The policy:</b> an OpenVLA-class network fine-tuned for this
+        task. Input: the camera image. Output: 7 numbers —
+        <code>dx dy dz droll dpitch dyaw gripper</code> — the next arm
+        motion.</li>
+      <li><b>The two cartons:</b> <span class="hl-good">deep</span> (bottle
+        fits) and <span class="hl-bad">shallow</span> (physically cannot
+        hold it — forcing the placement jams the bottle and drops it).</li>
+      <li><b>Held-out starts #13–16:</b> four episode variants per carton
+        that were <i>never</i> used when fitting the probe.</li>
+    </ul>
+  </div>
+
+  <div class="xp">
+    <h2>How do you read a robot's mind?</h2>
+    <p>Every forward pass of the network produces <b>hidden states</b> —
+    internal activation vectors at each layer. During prior research we
+    captured those activations across episodes and fit a tiny frozen
+    classifier (standardize, then logistic regression — one weight vector and
+    a bias) on a single hidden-state row. That probe predicts “fits” vs
+    “cannot fit”. It has not been touched since: same
+    <code>mean / scale / w / b</code>, tonight and in every validation run.</p>
+    <p>When you click a carton in the demo, the engine runs one real forward
+    pass of the policy on that frame, applies the frozen probe to the
+    hidden-state row, and returns the <b>logit</b>: positive means “cannot
+    fit”, negative means “fits”, magnitude is confidence. The margins here
+    are enormous — around <span class="hl-good">−14 on the deep carton</span>
+    vs <span class="hl-bad">+7 on the shallow one</span>.</p>
+    <p><b>How you know it's live:</b> next to the live logit we print the
+    logit this same episode logged when it was originally captured. They
+    agree to ~0.1 but not exactly — fresh compute, same frozen probe.</p>
+  </div>
+
+  <div class="xp">
+    <h2>Why this is interesting: the knowledge-action gap</h2>
+    <p>Having the belief is not the same as using it. The action head plans
+    the same packing motion whether the belief says “fits” or “cannot fit”.
+    In the prior research, steering the belief direction did not change
+    behavior, and further fine-tuning failed to wire the belief into the
+    actions. The information is stranded — one linear readout away from the
+    motor commands, but disconnected from them.</p>
+    <p>So when this robot damages the item, <i>“it didn't know”</i> is the
+    wrong diagnosis. It knew. The knowledge just wasn't connected to
+    behavior. That's the gap this project makes visible.</p>
+  </div>
+
+  <div class="xp">
+    <h2>The fix: a safety gate made from the robot's own belief</h2>
+    <p>The same frozen probe, run at the decision step as a GO/HOLD monitor:
+    if it reads “cannot fit”, the gate vetoes the motion — the six movement
+    numbers are zeroed and the arm holds still. One linear layer plus a
+    threshold; zero retraining.</p>
+    <p>In the validation run before the hackathon: hazardous placement
+    attempts went <span class="hl-good">4/4 → 0/4</span> with the gate
+    connected, correct placements stayed <span class="hl-good">4/4</span>,
+    and the gate's decisions were 10/10 with margins of 7+ logits.
+    Interpretability turned into an intervention.</p>
+  </div>
+
+  <div class="xp">
+    <h2>What's live and what's recorded</h2>
+    <table>
+      <tr><th>Thing on screen</th><th>When it's computed</th></tr>
+      <tr><td>Belief readout, planned action, GO/HOLD decision</td>
+          <td><b>Live</b> — a real forward pass on every click (~0.8 s)</td></tr>
+      <tr><td>Outcome video in step 5</td>
+          <td><b>Recorded earlier</b> in the simulator under the same carton
+              + gate setting (full physics takes minutes)</td></tr>
+      <tr><td>“RUN LIVE” block (when online)</td>
+          <td><b>Fully live</b> — persistent simulator resets, infers, and
+              executes in real time (60–90 s; a HOLD is near-immediate)</td></tr>
+    </table>
+  </div>
+
+  <div class="xp">
+    <h2>How it's wired, and what was built when</h2>
+    <p><code>browser → public proxy (this repo) → private engine on a lab
+    GPU</code>. The engine holds the policy weights, the frozen probe, and
+    the captured scenes; the public repo contains only the UI, the proxy,
+    and the interface contract. No credentials or server addresses live in
+    the repo.</p>
+    <p><b>Existed before the hackathon:</b> the policy, the probe, the
+    research findings, and the captured scenes.
+    <b>Built during the hackathon:</b> this debugger — UI, proxy, client
+    contract, and the thin HTTP wrapper on the server. The split is stated
+    in the README, and the private repo's commit history proves the research
+    predates tonight.</p>
+  </div>
+
+  <div class="xp">
+    <h2>Questions you might be asking</h2>
+    <div class="q">Is the probe just detecting that the carton looks different?</div>
+    <div class="a">That was tested: an identical probe trained with shuffled
+    labels — same pipeline, same features — fails to produce the
+    carton-conditional behavior. The specific belief content does the work,
+    not “any classifier on these pixels”.</div>
+    <div class="q">Is this cherry-picked?</div>
+    <div class="a">The demo starts are held out from probe fitting, all four
+    variants per carton are one click away, and every click shows the live
+    logit next to the originally recorded one.</div>
+    <div class="q">Why not just train the robot better?</div>
+    <div class="a">Tried in the prior research: additional fine-tuning at
+    multiple budgets did not wire the belief into behavior. The fix that
+    works is one frozen linear readout — which is the point: the knowledge
+    was already there.</div>
+    <div class="q">Does it generalize?</div>
+    <div class="a">The same frozen readout transfers across sibling
+    checkpoints of this policy family. It is anchored to the validated scene
+    layout, though — moving the carton elsewhere degrades the readout.
+    Honest limitation, stated as such.</div>
+    <div class="q">Why does this matter beyond a demo?</div>
+    <div class="a">It's a recipe: find a safety-relevant belief inside a
+    policy, freeze a probe on it, and run it as a runtime monitor with veto
+    power — a safety layer extracted from the model itself, with no
+    retraining and sub-second overhead.</div>
+  </div>
+
+  <div class="xp">
+    <h2>Glossary</h2>
+    <dl>
+      <dt>VLA (vision-language-action model)</dt>
+      <dd>A neural network that maps camera images (+ an instruction) directly
+      to robot actions.</dd>
+      <dt>Forward pass</dt>
+      <dd>One run of the network: image in, action out. Everything live in
+      this demo happens during single forward passes.</dd>
+      <dt>Hidden state</dt>
+      <dd>The network's internal activation vectors between layers — what it
+      “thinks” en route to its output.</dd>
+      <dt>Linear probe</dt>
+      <dd>A tiny frozen classifier (weights + bias) applied to a hidden
+      state to decode information from it. Frozen = never updated after
+      fitting.</dd>
+      <dt>Logit</dt>
+      <dd>The probe's raw score. Positive → “cannot fit”, negative → “fits”;
+      bigger magnitude → more confident.</dd>
+      <dt>GO / HOLD gate</dt>
+      <dd>The probe used as a veto: HOLD zeroes the six motion numbers so the
+      arm stays still; GO passes the plan through unchanged.</dd>
+      <dt>Held-out</dt>
+      <dd>Data the probe never saw during fitting — the demo runs on these.</dd>
+      <dt>Isaac Sim</dt>
+      <dd>NVIDIA's robotics simulator, where the scenes, physics, and robot
+      live.</dd>
+    </dl>
+  </div>
+</aside>
 
 <script>
 const AXES = ["dx","dy","dz","droll","dpitch","dyaw","gripper"];
@@ -528,6 +769,16 @@ $("eng-medium").onclick = () => {
 };
 
 refresh();
+
+/* ---------- side explainer drawer ---------- */
+function openHow(open) { document.body.classList.toggle("how-open", open); }
+$("tab-how").onclick = () => openHow(true);
+$("side-handle").onclick = () => openHow(true);
+$("drawer-close").onclick = () => openHow(false);
+$("backdrop").onclick = () => openHow(false);
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") openHow(false);
+});
 
 /* ---------- LIVE ISAAC mode (step 5, shown when worker online) ---------- */
 let livePoll = null, framePoll = null;
