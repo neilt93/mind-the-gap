@@ -301,6 +301,10 @@ async function load(autoplay) {
     const r = await fetch(`/api/replay_trace/${clip}`);
     st.trace = r.ok ? await r.json() : null;
   } catch { st.trace = null; }
+  if (!st.trace) {   // trace may still be rendering — retry
+    clearTimeout(st.retry);
+    st.retry = setTimeout(() => { if (!st.trace) load(false); }, 6000);
+  }
   st.moments = deriveMoments();
   $("moments").innerHTML = st.moments.map(m =>
     `<div class="m ${m.cls}">t=${m.t.toFixed(1)}s  ${m.label}</div>`).join("");
