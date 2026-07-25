@@ -280,11 +280,13 @@ async function refresh() {
 
 async function init() {
   const scenes = await (await fetch("/api/scenes")).json();
+  const LABELS = {control: "Deep carton", medium: "Medium carton",
+                  shallow: "Shallow carton (too shallow)"};
   const sb = $("scene-buttons");
   scenes.forEach(s => {
     const b = document.createElement("button");
     b.className = "scene" + (s.id === state.scene ? " active" : "");
-    b.textContent = s.label + (s.id === "shallow" ? " (too shallow)" : "");
+    b.textContent = LABELS[s.id] || s.label;
     b.title = s.description;
     b.onclick = () => {
       state.scene = s.id;
