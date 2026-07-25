@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mind the Gap — watch the knowledge-action gap emerge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0b0e14; --panel: #131720; --border: #2a3040;
@@ -167,6 +170,118 @@
   .hl-good { color: var(--go); font-weight: 700; }
   .hl-bad { color: var(--bad); font-weight: 700; }
   .hl-warn { color: var(--warn); font-weight: 700; }
+</style>
+<style>
+  /* ================= beautify layer (additive overrides) ================= */
+
+  /* --- font & text --- */
+  body {
+    font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 15.5px; letter-spacing: .004em;
+    background:
+      radial-gradient(1100px 520px at 50% -12%, rgba(76,159,254,.10), transparent 60%),
+      radial-gradient(900px 480px at 88% 112%, rgba(63,212,99,.05), transparent 60%),
+      var(--bg);
+  }
+  button, input, select { font-family: inherit; }
+  .t-now, .time, .moments, code {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .brand { font-weight: 900; text-shadow: 0 0 26px rgba(76,159,254,.5); }
+  .tagline { font-size: .92rem; letter-spacing: .01em; }
+  .freeze h2 { font-weight: 900; letter-spacing: -.012em;
+    text-shadow: 0 4px 30px rgba(0,0,0,.65); }
+  .freeze h2 .k { text-shadow: 0 0 28px rgba(255,97,102,.5); }
+  .row .v { font-size: 1.06rem; letter-spacing: .01em; transition: color .3s; }
+  .row b { opacity: .85; }
+  .t-now { font-variant-numeric: tabular-nums; }
+  .foot, .eng { line-height: 1.55; }
+
+  /* --- surfaces & colour depth --- */
+  .scene-wrap, .trace, .deck, .xp {
+    border-color: rgba(147,160,180,.16);
+    box-shadow: 0 10px 34px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.045);
+  }
+  .trace, .deck, .xp {
+    background: linear-gradient(180deg, rgba(255,255,255,.03),
+      rgba(255,255,255,0) 46%), var(--panel);
+  }
+  .scene-label { backdrop-filter: blur(6px); background: rgba(10,12,18,.66);
+    border-color: rgba(147,160,180,.4); }
+  .freeze { backdrop-filter: blur(7px); background: rgba(8,9,13,.72); }
+  .connect-btn { border-radius: 14px; animation: glowPulse 1.8s ease-in-out infinite; }
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 6px 30px rgba(76,159,254,.45); }
+    50% { box-shadow: 0 6px 46px rgba(76,159,254,.85); }
+  }
+
+  /* video frame reacts to the story state */
+  .scene-wrap { transition: box-shadow .6s, border-color .6s; }
+  .scene-wrap.danger { border-color: rgba(255,97,102,.55);
+    box-shadow: 0 0 0 1px rgba(255,97,102,.25), 0 0 46px rgba(255,97,102,.18),
+      0 10px 34px rgba(0,0,0,.42); }
+  .scene-wrap.safe { border-color: rgba(63,212,99,.5);
+    box-shadow: 0 0 0 1px rgba(63,212,99,.22), 0 0 46px rgba(63,212,99,.15),
+      0 10px 34px rgba(0,0,0,.42); }
+
+  /* --- trace panel --- */
+  .row { border-bottom-color: rgba(147,160,180,.12); padding-bottom: .45rem; }
+  .v.nofit { text-shadow: 0 0 18px rgba(255,97,102,.35); }
+  .v.hold { text-shadow: 0 0 18px rgba(63,212,99,.3); }
+  .gap-line.gap { box-shadow: 0 0 26px rgba(255,97,102,.15); }
+  .gap-line.veto { box-shadow: 0 0 26px rgba(63,212,99,.13); }
+
+  /* timeline rail with dots */
+  .moments { margin-top: .45rem; padding-left: .95rem; position: relative;
+    gap: .34rem; font-size: .78rem; }
+  .moments::before { content: ""; position: absolute; left: .28rem; top: .3rem;
+    bottom: .3rem; width: 2px; background: rgba(147,160,180,.18);
+    border-radius: 1px; }
+  .m { position: relative; }
+  .m::before { content: ""; position: absolute; left: -.87rem; top: .3em;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--dim); opacity: .45; }
+  .m.hit { color: var(--text); }
+  .m.hit::before { opacity: 1; background: currentColor;
+    box-shadow: 0 0 10px currentColor; }
+  .m.hit.warn { color: var(--warn); }
+  .m.hit.bad { color: var(--bad); }
+  .m.hit.stop { color: var(--go); }
+
+  /* --- deck: play button, slider, pills --- */
+  .deck { gap: .9rem; padding: .65rem 1rem; }
+  .deck button.play { width: 46px; height: 40px; border-radius: 999px;
+    background: var(--accent); color: #fff; border: 0;
+    box-shadow: 0 4px 18px rgba(76,159,254,.4); }
+  .deck button.play:hover { filter: brightness(1.12); }
+  .deck .time { font-variant-numeric: tabular-nums; }
+  .deck input[type=range] { -webkit-appearance: none; appearance: none;
+    height: 22px; background: transparent; cursor: pointer; }
+  .deck input[type=range]::-webkit-slider-runnable-track { height: 5px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent) 0%,
+      rgba(76,159,254,.55) 55%, rgba(76,159,254,.18) 100%); }
+  .deck input[type=range]::-webkit-slider-thumb { -webkit-appearance: none;
+    width: 16px; height: 16px; border-radius: 50%; background: #fff;
+    margin-top: -5.5px; cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(76,159,254,.4), 0 2px 10px rgba(0,0,0,.55); }
+  .deck input[type=range]::-moz-range-track { height: 5px; border-radius: 3px;
+    background: rgba(76,159,254,.35); }
+  .deck input[type=range]::-moz-range-thumb { width: 16px; height: 16px;
+    border: 0; border-radius: 50%; background: #fff; cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(76,159,254,.4); }
+  .modes button, .scenes button { border-radius: 999px; padding: .5rem 1.05rem;
+    transition: transform .06s, border-color .15s, color .15s, box-shadow .15s; }
+  .modes button:hover, .scenes button:hover { transform: translateY(-1px); }
+  .modes button.active { box-shadow: 0 0 18px rgba(76,159,254,.22); }
+  .scenes button.active.nofit { box-shadow: 0 0 18px rgba(255,97,102,.2); }
+  .scenes button.active.fits { box-shadow: 0 0 18px rgba(63,212,99,.18); }
+
+  /* --- drawer polish --- */
+  .side-handle { box-shadow: -2px 4px 22px rgba(0,0,0,.5),
+    0 0 18px rgba(76,159,254,.35); }
+  #how-drawer { box-shadow: -18px 0 50px rgba(0,0,0,.55); }
+  .drawer-head { backdrop-filter: blur(6px); background: rgba(11,14,20,.85); }
 </style>
 </head>
 <body>
@@ -514,6 +629,12 @@ function render(t) {
     g.className = "gap-line agree";
     g.textContent = "belief and action agree — safe placement";
   } else { g.className = "gap-line"; }
+
+  const wrap = document.querySelector(".scene-wrap");
+  if (wrap) {
+    wrap.classList.toggle("danger", !!(hazard && ph && ph !== "HOLD"));
+    wrap.classList.toggle("safe", ph === "HOLD" && hazard);
+  }
 
   document.querySelectorAll("#moments .m").forEach((el, i) => {
     el.classList.toggle("hit", st.moments[i].t <= t + 0.02);
