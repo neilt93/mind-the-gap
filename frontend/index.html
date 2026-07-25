@@ -184,6 +184,28 @@
                text-align: right; }
   .eng select, .eng button { background: var(--bg); color: var(--text);
     border: 1px solid var(--border); border-radius: 7px; padding: .3rem .5rem; }
+
+  /* ---------- what-is-happening pipeline strip ---------- */
+  .pipe { display: flex; align-items: stretch; gap: .35rem; flex-wrap: wrap;
+          margin: 0 0 1rem; }
+  .pipe .step { flex: 1; min-width: 148px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 10px; padding: .5rem .65rem; }
+  .pipe .step .k { font-size: .66rem; font-weight: 800; letter-spacing: .09em;
+                   text-transform: uppercase; color: var(--dim); }
+  .pipe .step .v { font-size: .84rem; font-weight: 700; margin-top: .18rem; }
+  .pipe .step .v.small { font-weight: 400; color: var(--dim); font-size: .78rem; }
+  .pipe .arrow { align-self: center; color: var(--dim); font-weight: 900; }
+  .pipe .step.hot-bad { border-color: var(--bad-bright); }
+  .pipe .step.hot-good { border-color: var(--go-bright); }
+  .pipe .step.hot-warn { border-color: var(--warn); }
+  .frame-explain { color: var(--dim); font-size: .8rem; margin-top: .45rem; }
+  .variant-group { display: flex; align-items: center; gap: .3rem; }
+  .variant-group .ask2 { color: var(--dim); font-size: .7rem; font-weight: 700;
+                         text-transform: uppercase; letter-spacing: .06em; }
+  button.variant { background: var(--panel); color: var(--dim); font-weight: 700;
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: .35rem .55rem; cursor: pointer; font-size: .8rem; }
+  button.variant.active { color: var(--accent); border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -197,7 +219,28 @@ turns ignored knowledge into a live safety intervention.</p>
   <span class="ask">Judge — pick the carton:</span>
   <button class="scene fits active" id="btn-fits">ITEM FITS</button>
   <button class="scene nofit" id="btn-nofit">ITEM DOES NOT FIT</button>
+  <div class="variant-group" id="variant-group"
+       title="4 held-out episode starts per carton — none were used to fit the probe">
+    <span class="ask2">held-out start</span>
+  </div>
   <span class="layer-tag off" id="layer-tag">SAFETY LAYER DISCONNECTED</span>
+</div>
+
+<div class="pipe">
+  <div class="step"><div class="k">1 · Camera frame</div>
+    <div class="v small">the exact image the policy acts from</div></div>
+  <span class="arrow">→</span>
+  <div class="step"><div class="k">2 · VLA forward pass — live</div>
+    <div class="v small" id="pipe-lat">one real inference per click</div></div>
+  <span class="arrow">→</span>
+  <div class="step" id="pipe-belief"><div class="k">3 · Frozen probe reads hidden state → belief</div>
+    <div class="v" id="pipe-belief-v">—</div></div>
+  <span class="arrow">→</span>
+  <div class="step" id="pipe-plan"><div class="k">4 · Action head → plan</div>
+    <div class="v" id="pipe-plan-v">—</div></div>
+  <span class="arrow">→</span>
+  <div class="step" id="pipe-verdict"><div class="k">5 · Safety gate</div>
+    <div class="v" id="pipe-verdict-v">disconnected</div></div>
 </div>
 
 <div class="main">
@@ -209,6 +252,9 @@ turns ignored knowledge into a live safety intervention.</p>
       <span class="callout bad" id="lab-shallow" style="left:45%; top:38%; display:none;">TOO SHALLOW</span>
       <span class="callout" id="lab-item" style="left:11%; top:46%;">ITEM</span>
     </div>
+    <div class="frame-explain">Top-down Isaac camera: robot arm in yellow,
+    bottle at the gripper (left), target carton at top. Flipping the carton
+    above swaps a deep carton for one too shallow to hold the bottle.</div>
 
     <div class="live-isaac" id="live-panel" style="display:none">
       <div class="tag"><span class="live-dot"></span> LIVE ISAAC RUN — persistent simulator</div>
@@ -317,6 +363,21 @@ AXES.forEach(a => {
   $("eng-axes").appendChild(row);
 });
 
+const VARIANTS = [13, 14, 15, 16];
+VARIANTS.forEach(s => {
+  const b = document.createElement("button");
+  b.className = "variant" + (s === state.seed ? " active" : "");
+  b.id = "variant-" + s;
+  b.textContent = "#" + s;
+  b.onclick = () => { state.seed = s; $("eng-seed").value = String(s);
+                      syncVariants(); refresh(); };
+  $("variant-group").appendChild(b);
+});
+function syncVariants() {
+  VARIANTS.forEach(s => $("variant-" + s).className =
+    "variant" + (s === state.seed ? " active" : ""));
+}
+
 function conf(logit) {
   const m = Math.abs(logit);
   return m > 5 ? "Very high" : m > 2 ? "High" : "Moderate";
@@ -403,6 +464,26 @@ function render() {
     $(`val-${a}`).textContent = acts[a].toFixed(4);
   });
 
+  // what-is-happening pipeline strip
+  $("pipe-lat").textContent =
+    `one real inference per click — ${r.latency_ms} ms`;
+  $("pipe-belief-v").textContent = hazard
+    ? `“will NOT fit” · logit +${r.belief_logit.toFixed(1)}`
+    : `“fits” · logit ${r.belief_logit.toFixed(1)}`;
+  $("pipe-belief").className = "step " + (hazard ? "hot-bad" : "hot-good");
+  $("pipe-plan-v").textContent = vetoed ? "vetoed by gate"
+    : (planMoves ? "insert into carton" : "hold still");
+  $("pipe-plan").className =
+    "step" + (hazard && planMoves && !vetoed ? " hot-warn" : "");
+  const pv = $("pipe-verdict-v");
+  if (!state.gateOn) {
+    pv.textContent = `disconnected — would say ${r.decision}`;
+    $("pipe-verdict").className = "step";
+  } else {
+    pv.textContent = r.hold ? "HOLD — motion vetoed" : "GO";
+    $("pipe-verdict").className = "step hot-good";
+  }
+
   setReplay();
 }
 
@@ -431,7 +512,8 @@ $("btn-nofit").onclick = () => {
 };
 $("use-btn").onclick = () => { state.gateOn = true; render(); };
 $("disconnect-btn").onclick = () => { state.gateOn = false; render(); };
-$("eng-seed").onchange = e => { state.seed = parseInt(e.target.value); refresh(); };
+$("eng-seed").onchange = e => { state.seed = parseInt(e.target.value);
+                                syncVariants(); refresh(); };
 $("eng-medium").onclick = () => {
   state.scene = "medium";
   $("btn-fits").classList.remove("active"); $("btn-nofit").classList.remove("active");
