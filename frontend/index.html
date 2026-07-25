@@ -9,9 +9,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d0e11; --panel: #14161b; --border: #262a31;
-    --text: #eef2f8; --dim: #93a0b4;
-    --go: #34c26a; --bad: #ef5a60; --warn: #d9a325; --accent: #4e9bf0;
+    --bg: #ffffff; --panel: #f7f7f8; --border: #e3e4e8;
+    --text: #17181c; --dim: #6b7280;
+    --go: #178a43; --bad: #d6383e; --warn: #b07a12; --accent: #17181c;
   }
   * { box-sizing: border-box; margin: 0; }
   html, body { height: 100%; }
@@ -39,7 +39,7 @@
   .scene-label { position: absolute; top: .7rem; left: .8rem;
     font-size: .72rem; font-weight: 800; letter-spacing: .1em;
     padding: .25rem .6rem; border-radius: 6px;
-    background: rgba(10,12,18,.8); border: 1px solid var(--dim); }
+    background: rgba(255,255,255,.92); border: 1px solid var(--border); color: var(--text); }
   .freeze {
     position: absolute; inset: 0; display: none; flex-direction: column;
     align-items: center; justify-content: center; text-align: center;
@@ -52,7 +52,7 @@
     padding: 1rem 1.8rem; font-size: 1.15rem; font-weight: 900;
     letter-spacing: .04em; color: #fff; background: var(--accent);
     border: 0; border-radius: 12px; cursor: pointer;
-    box-shadow: 0 6px 30px rgba(76,159,254,.45);
+    box-shadow: 0 4px 16px rgba(0,0,0,.2);
   }
   .connect-btn:hover { filter: brightness(1.12); }
 
@@ -174,23 +174,21 @@
   /* ============ beautify pass 2 (additive) ============ */
   body {
     background:
-      radial-gradient(1100px 500px at 18% -8%, rgba(76,159,254,.10), transparent 60%),
-      radial-gradient(900px 420px at 96% 4%, rgba(63,212,99,.05), transparent 55%),
-      var(--bg);
+      none;
   }
   header { padding: .2rem 0 .5rem; }
-  .brand { text-shadow: 0 0 22px rgba(76,159,254,.5); }
+  .brand { text-shadow: none; }
   .scene-wrap {
-    box-shadow: 0 18px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(76,159,254,.12);
-    border-color: rgba(76,159,254,.25);
+    box-shadow: 0 8px 28px rgba(0,0,0,.10);
+    border-color: var(--border);
   }
   .scene-label {
-    backdrop-filter: blur(6px); background: rgba(10,12,18,.65);
-    border-color: rgba(76,159,254,.35); letter-spacing: .12em;
+    background: rgba(255,255,255,.92); color: var(--text);
+    border-color: var(--border); letter-spacing: .12em;
   }
   .trace {
-    box-shadow: 0 14px 40px rgba(0,0,0,.35);
-    background: linear-gradient(180deg, #151a24 0%, #10141d 100%);
+    box-shadow: 0 6px 22px rgba(0,0,0,.08);
+    background: var(--panel);
   }
   .trace h2 { display: flex; align-items: center; gap: .5rem; }
   .trace h2::before {
@@ -203,23 +201,23 @@
   .row .v { font-size: 1.05rem; letter-spacing: .01em; }
   .row b { opacity: .85; }
   .t-now {
-    background: rgba(76,159,254,.08); border: 1px solid rgba(76,159,254,.22);
+    background: #fff; border: 1px solid var(--border);
     border-radius: 8px; padding: .3rem .6rem; align-self: flex-start;
   }
   .moments { padding-left: .2rem; }
   .m { padding: .12rem 0; }
   .deck {
-    box-shadow: 0 -10px 34px rgba(0,0,0,.35), 0 0 0 1px rgba(76,159,254,.08);
-    background: linear-gradient(180deg, #151a24, #10141d);
+    box-shadow: 0 -4px 18px rgba(0,0,0,.08);
+    background: var(--panel);
   }
   .deck button.play {
     background: var(--accent); color: #fff; border: 0;
-    box-shadow: 0 4px 16px rgba(76,159,254,.4); border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(0,0,0,.25); border-radius: 50%;
     width: 42px; height: 42px;
   }
   .modes button.active {
-    background: rgba(76,159,254,.12);
-    box-shadow: 0 0 14px rgba(76,159,254,.25) inset;
+    background: rgba(23,24,28,.06);
+    box-shadow: none;
   }
   .gap-line.agree {
     background: rgba(63,212,99,.07); border-color: rgba(63,212,99,.4);
@@ -227,6 +225,10 @@
   }
   details summary { opacity: .7; }
   details summary:hover { opacity: 1; }
+  .scene-label {
+    background: #ffffff !important; color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+  }
 </style>
 <style>
   /* ================= beautify layer (additive overrides) ================= */
@@ -259,7 +261,7 @@
   .freeze { backdrop-filter: blur(7px); background: rgba(8,9,13,.72); }
   .connect-btn { border-radius: 14px; animation: glowPulse 1.8s ease-in-out infinite; }
   @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 6px 30px rgba(76,159,254,.45); }
+    0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,.2); }
     50% { box-shadow: 0 6px 46px rgba(76,159,254,.85); }
   }
 
@@ -352,7 +354,7 @@
 
 <header>
   <span class="brand">MIND THE GAP</span>
-  <span class="tagline">a live x-ray of a robot policy — what it sees, plans and executes, with a frozen safety wire in the loop</span>
+  <span class="tagline">a live x-ray of a robot policy, what it sees, plans and executes, with a frozen safety wire in the loop</span>
 </header>
 
 <div class="stage">
@@ -387,10 +389,7 @@
       <div class="c-row"><span class="c-name">Fit hazard: will it fit
         safely?<span class="c-tag val">VALIDATED</span></span>
         <span class="c-val" id="c-fit_hazard">·</span></div>
-      <div class="c-note">Experimental signals are preliminary probe
-      outputs, not yet validated on held-out scenes. Motion labels describe
-      action commands, not beliefs.</div>
-    </details>
+      </details>
 
     <div class="foot">All labels are measured quantities.
       Full explanation in the “?” side panel.</div>
@@ -714,7 +713,7 @@ function phaseAt(t) {
 
 function deriveLiberoMoments(tr) {
   // Every entry derives from recorded per-step data (command/gripper
-  // from executed actions, phases from the adapter) — no scripting.
+  // from executed actions, phases from the adapter), no scripting.
   const fps = tr.fps || 30, steps = tr.steps;
   const M = [{t: 0, cls: "", label: "Scene observed"}];
   const dec = tr.decision || {};
@@ -746,7 +745,7 @@ function deriveLiberoMoments(tr) {
             label: "Task complete \u2713"});
   if (dec.hold && steps.length)
     M.push({t: 0.2, cls: "stop",
-            label: "Robot holds still \u2014 veto active"});
+            label: "Robot holds still, veto active"});
   const seen = new Set();
   return M.filter(m => !seen.has(m.label) && seen.add(m.label))
           .sort((a, b) => a.t - b.t);
@@ -814,8 +813,8 @@ function render(t) {
       ? st.trace.steps[Math.min(st.trace.steps.length - 1,
           Math.floor(t * (st.trace.fps || 30)))] : null;
     $("r-plan").textContent = (stI && stI.h_norm !== undefined)
-      ? `layer-9 |h| = ${stI.h_norm} \u2014 experimental, not semantically interpreted`
-      : "experimental \u2014 not semantically interpreted";
+      ? `layer-9 |h| = ${stI.h_norm}, experimental, not semantically interpreted`
+      : "experimental, not semantically interpreted";
     const phC = phaseAt(t);
     $("r-exec").textContent = phC
       ? (PHASE_LABEL[phC] || phC.toLowerCase())
@@ -832,7 +831,7 @@ function render(t) {
     if (stC && stC.command !== undefined) {
       showRow("row-cmd", true);
       $("r-cmd").textContent = st.mode === "wired"
-        ? "\u2014 vetoed (zeroed)"
+        ? ", vetoed (zeroed)"
         : `${stC.command} (${stC.strength}, ${stC.strength_value})`;
       showRow("row-grip", true);
       $("r-grip").textContent = stC.gripper;
@@ -953,7 +952,7 @@ async function load(autoplay) {
     const r = await fetch(`/api/replay_trace/${clip}`);
     st.trace = r.ok ? await r.json() : null;
   } catch { st.trace = null; }
-  if (!st.trace) {   // trace may still be rendering — retry
+  if (!st.trace) {   // trace may still be rendering, retry
     clearTimeout(st.retry);
     st.retry = setTimeout(() => { if (!st.trace) load(false); }, 6000);
   }
@@ -1020,7 +1019,7 @@ $("i-cube").onclick = () => setItem("cube");
 // Show the reference tab only when the reference clip exists.
 $("i-bottle").parentElement.style.display = "none";
 $("s-shallow").parentElement.style.display = st.item === "cube" ? "none" : "";
-// view toggle permanently hidden — single clean-run demo
+// view toggle permanently hidden, single clean-run demo
 
 $("connect").onclick = () => setMode("wired");
 
@@ -1033,7 +1032,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") openHow(false);
 });
 
-load(true);   // start on: shallow carton, native policy — the failure
+load(true);   // start on: shallow carton, native policy, the failure
 </script>
 </body>
 </html>
