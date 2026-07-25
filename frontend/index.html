@@ -334,8 +334,8 @@
     <button id="s-deep" class="fits">DEEP CARTON</button>
   </span>
   <span class="scenes">
-    <button id="i-bottle" class="active">ITEM: BOTTLE</button>
-    <button id="i-cube">ITEM: CUBE</button>
+    <button id="i-bottle" class="active">BENCHMARK SCENE</button>
+    <button id="i-cube">REFERENCE RUN</button>
   </span>
 </div>
 
@@ -614,9 +614,22 @@ function render(t) {
   const dec = tr && tr.decision;
   const hazard = dec ? dec.belief_logit > 0 : st.scene === "shallow";
   $("tnow").textContent = `t = ${t.toFixed(1)}s`;
-  const itemName = st.item === "cube" ? "cube" : "bottle";
+  if (st.item === "cube") {
+    // Official reference scene — no probe story here; honest labels.
+    $("r-sees").textContent = "official Isaac scene: Franka + cube";
+    $("r-belief").textContent = "— (no probe on this scene)";
+    $("r-belief").className = "v";
+    $("r-plan").textContent = "official pick-place controller";
+    $("r-exec").textContent = "clean pick and place";
+    $("r-exec").className = "v";
+    $("gap-line").className = "gap-line";
+    const dur2 = v.duration || 0;
+    $("time").textContent = `${t.toFixed(1)} / ${dur2.toFixed(1)}s`;
+    $("scrub").max = dur2 || 100; $("scrub").value = t;
+    return;
+  }
   $("r-sees").textContent = st.scene === "shallow"
-    ? itemName + " + carton (too shallow)" : itemName + " + deep carton";
+    ? "bottle + carton (too shallow)" : "bottle + deep carton";
   const rb = $("r-belief");
   rb.textContent = hazard ? "ITEM WILL NOT FIT" : "ITEM FITS";
   rb.className = "v " + (hazard ? "nofit" : "fits");
@@ -664,15 +677,7 @@ function render(t) {
 }
 
 async function load(autoplay) {
-  let clip = clipKey();
-  if (st.item === "cube") {   // cube variant may not be rendered yet
-    const head = await fetch(`/api/replay/${clip}`, {method: "HEAD"})
-      .catch(() => null);
-    if (!head || !head.ok) {
-      clip = CLIP[key()];
-      $("scene-label").textContent = "CUBE VARIANT RENDERING — showing bottle run";
-    }
-  }
+  let clip = st.item === "cube" ? "clean_reference" : CLIP[key()];
   $("freeze").classList.remove("show");
   st.frozeOnce = st.mode !== "native";
   try {
@@ -686,8 +691,9 @@ async function load(autoplay) {
   st.moments = deriveMoments();
   $("moments").innerHTML = st.moments.map(m =>
     `<div class="m ${m.cls}">t=${m.t.toFixed(1)}s  ${m.label}</div>`).join("");
-  $("scene-label").textContent =
-    `VALIDATED ISAAC RUN — ${st.scene === "shallow" ? "shallow carton" : "deep carton"} · ${st.mode === "wired" ? "safety wire ON" : "native policy"}`;
+  $("scene-label").textContent = st.item === "cube"
+    ? "OFFICIAL ISAAC REFERENCE RUN — Franka + cube (motion-quality reference, no probe story)"
+    : `VALIDATED ISAAC RUN — ${st.scene === "shallow" ? "shallow carton" : "deep carton"} · ${st.mode === "wired" ? "safety wire ON" : "native policy"}`;
   const dec = st.trace && st.trace.decision;
   $("eng-dec").textContent = dec
     ? ` This run's decision: logit ${dec.belief_logit} → ${dec.decision} (validated scene frame, live forward pass).`
@@ -735,9 +741,9 @@ function setItem(i) {
 }
 $("i-bottle").onclick = () => setItem("bottle");
 $("i-cube").onclick = () => setItem("cube");
-// Show the cube tab only when cube clips exist on the server.
+// Show the reference tab only when the reference clip exists.
 $("i-bottle").parentElement.style.display = "none";
-fetch("/api/replay/unsafe_attempt_cube", {method: "HEAD"})
+fetch("/api/replay/clean_reference", {method: "HEAD"})
   .then(r => { if (r.ok) $("i-bottle").parentElement.style.display = ""; })
   .catch(() => {});
 $("connect").onclick = () => setMode("wired");
