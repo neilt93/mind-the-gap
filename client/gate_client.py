@@ -27,6 +27,22 @@ POST {ENGINE_URL}/gate      body: {"scene": str, "seed": int}
 GET {ENGINE_URL}/scenes          -> [{"id", "label", "description", "seeds"}]
 GET {ENGINE_URL}/frame/{scene}/{seed} -> PNG (the exact model-input image)
 GET {ENGINE_URL}/health          -> {"ok": bool, "model_loaded": bool, ...}
+
+Viewer additions (all read-only):
+GET {ENGINE_URL}/replay/{key}        -> MP4, validated Isaac episode for
+                                        key in {go_valid, unsafe_attempt,
+                                        hold_gated}
+GET {ENGINE_URL}/replay_trace/{key}  -> {"decision": {belief_logit, decision},
+                                         "steps": [{"phase": str}, ...]}
+                                        per-step trace time-aligned to the
+                                        clip (30 steps/s)
+GET {ENGINE_URL}/trace/{arm}         -> raw model's-eye per-step trace JSON
+GET {ENGINE_URL}/live/status         -> {"state": RESETTING|READY|INFERRING|
+                                         HOLD|EXECUTING|COMPLETED|FAILED|
+                                         OFFLINE, ...}
+GET {ENGINE_URL}/live/frame          -> JPEG, current live-sim camera frame
+POST {ENGINE_URL}/live/start         -> body {"scene": str,
+                                         "safety_enabled": bool}
 """
 
 from typing import Any, Dict, List
