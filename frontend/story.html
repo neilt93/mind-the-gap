@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mind the Gap — this robot knows the item will not fit. It tries anyway.</title>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #131720; --border: #2a3040;
+    --text: #eef2f8; --dim: #93a0b4;
+    --go: #2ea549; --go-bright: #3fd463;
+    --bad: #e5484d; --bad-bright: #ff6166;
+    --warn: #f0b429; --accent: #4c9ffe;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; padding: 1.2rem 1.4rem 3rem;
+    max-width: 880px; margin: 0 auto;
+  }
+
+  /* ---------- header ---------- */
+  .brand { font-size: .9rem; font-weight: 800; letter-spacing: .18em;
+           color: var(--accent); }
+  h1 { font-size: clamp(1.5rem, 3.4vw, 2.2rem); line-height: 1.15;
+       margin: .3rem 0 .35rem; }
+  .sub { color: var(--dim); font-size: .95rem; }
+
+  /* ---------- step cards ---------- */
+  .step {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.1rem 1.2rem; margin-top: 1.1rem;
+  }
+  .step-head { display: flex; align-items: baseline; gap: .7rem;
+               margin-bottom: .35rem; }
+  .step-num {
+    flex: none; width: 1.7rem; height: 1.7rem; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .95rem; transform: translateY(.2rem);
+  }
+  .step-head h2 { font-size: 1.15rem; font-weight: 800; }
+  .step-why { color: var(--dim); font-size: .88rem; margin-bottom: .8rem; }
+
+  /* ---------- step 1: scene pick ---------- */
+  .scene-btns { display: flex; gap: .8rem; flex-wrap: wrap; }
+  button.scene {
+    flex: 1; min-width: 230px; padding: .95rem 1.1rem;
+    font-size: 1.1rem; font-weight: 800; letter-spacing: .02em;
+    background: var(--bg); color: var(--text);
+    border: 2px solid var(--border); border-radius: 12px; cursor: pointer;
+    transition: border-color .15s, transform .05s;
+  }
+  button.scene:hover { transform: translateY(-1px); }
+  button.scene small { display: block; font-weight: 500; font-size: .78rem;
+                       color: var(--dim); margin-top: .2rem; }
+  button.scene.fits.active { border-color: var(--go-bright); }
+  button.scene.fits.active, button.scene.fits.active small { color: var(--go-bright); }
+  button.scene.nofit.active { border-color: var(--bad-bright); }
+  button.scene.nofit.active, button.scene.nofit.active small { color: var(--bad-bright); }
+  .variant-row { display: flex; align-items: center; gap: .35rem;
+                 margin-top: .7rem; flex-wrap: wrap; }
+  .variant-row .lbl { color: var(--dim); font-size: .78rem; }
+  button.variant {
+    background: var(--bg); color: var(--dim); font-weight: 700;
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: .3rem .55rem; cursor: pointer; font-size: .8rem;
+  }
+  button.variant.active { color: var(--accent); border-color: var(--accent); }
+
+  /* ---------- step 2: camera ---------- */
+  .cam {
+    position: relative; overflow: hidden; border-radius: 10px;
+    aspect-ratio: 40 / 21; background: #000;
+  }
+  .cam img {
+    position: absolute; width: 160%; left: -37.5%; top: -59.5%;
+    filter: saturate(1.05);
+  }
+  .callout {
+    position: absolute; font-size: .78rem; font-weight: 800;
+    letter-spacing: .06em; padding: .18rem .55rem; border-radius: 6px;
+    background: rgba(10, 12, 18, .82); border: 1px solid var(--dim);
+    color: var(--text); white-space: nowrap;
+    transform: translate(-50%, -135%);
+  }
+  .callout::after {
+    content: ""; position: absolute; left: 50%; top: 100%;
+    border: 6px solid transparent; border-top-color: rgba(10,12,18,.82);
+    transform: translateX(-50%);
+  }
+  .callout.bad { border-color: var(--bad-bright); color: var(--bad-bright); }
+  .under-note { color: var(--dim); font-size: .82rem; margin-top: .55rem; }
+
+  /* ---------- step 3: inside the robot ---------- */
+  .inside { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+  @media (max-width: 640px) { .inside { grid-template-columns: 1fr; } }
+  .thought {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: .9rem 1rem;
+  }
+  .thought .lab { font-size: .7rem; font-weight: 800; letter-spacing: .1em;
+                  text-transform: uppercase; color: var(--dim);
+                  display: flex; gap: .45rem; align-items: center; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; flex: none;
+              background: var(--bad-bright); animation: blink 1.4s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .thought .big {
+    font-size: clamp(1.25rem, 2.4vw, 1.6rem); font-weight: 900;
+    line-height: 1.12; margin-top: .45rem;
+  }
+  .big.fits { color: var(--go-bright); }
+  .big.nofit { color: var(--bad-bright); }
+  .big.anyway { color: var(--warn); }
+  .thought .small { color: var(--dim); font-size: .8rem; margin-top: .4rem; }
+  .band { margin-top: .8rem; border-radius: 12px; padding: .85rem 1rem;
+          display: none; }
+  .band h3 { font-size: 1.15rem; font-weight: 900; }
+  .band p { margin-top: .2rem; font-size: .9rem; }
+  .band.agree { background: rgba(46,165,73,.1); border: 1px solid var(--go); }
+  .band.agree h3 { color: var(--go-bright); }
+  .band.gap { background: rgba(229,72,77,.12);
+              border: 2px solid var(--bad-bright);
+              animation: alarm 1.2s ease-in-out infinite; }
+  .band.gap h3 { color: var(--bad-bright); }
+  @keyframes alarm { 50% { border-color: rgba(229,72,77,.35); } }
+  .proof { color: var(--dim); font-size: .78rem; margin-top: .6rem; }
+
+  /* ---------- step 4: safety layer ---------- */
+  .use-btn {
+    display: block; width: 100%; padding: 1rem;
+    font-size: 1.15rem; font-weight: 900; letter-spacing: .03em;
+    color: #fff; background: var(--accent); border: 0; border-radius: 12px;
+    cursor: pointer; box-shadow: 0 6px 24px rgba(76,159,254,.35);
+  }
+  .use-btn:hover { filter: brightness(1.1); }
+  .gate-state { border-radius: 12px; padding: .9rem 1rem; display: none; }
+  .gate-state.saved { background: rgba(46,165,73,.12);
+                      border: 2px solid var(--go-bright); }
+  .gate-state.saved h3 { color: var(--go-bright); font-size: 1.15rem; }
+  .gate-state.pass { background: var(--bg); border: 1px solid var(--go); }
+  .gate-state.pass h3 { color: var(--go-bright); font-size: 1.05rem; }
+  .saved-facts { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: .55rem; }
+  .saved-facts div { font-size: .92rem; }
+  .saved-facts b { display: block; font-size: .72rem; color: var(--dim);
+                   text-transform: uppercase; letter-spacing: .08em; }
+  .disconnect { margin-top: .7rem; background: none; border: 0;
+                color: var(--dim); font-size: .8rem; cursor: pointer;
+                text-decoration: underline; }
+
+  /* ---------- step 5: outcome ---------- */
+  .src-badge {
+    display: inline-block; font-size: .7rem; font-weight: 800;
+    letter-spacing: .08em; text-transform: uppercase;
+    padding: .22rem .55rem; border-radius: 6px; margin-bottom: .5rem;
+  }
+  .src-badge.rec { color: var(--warn); border: 1px solid var(--warn); }
+  .src-badge.live { color: var(--bad-bright); border: 1px solid var(--bad-bright); }
+  .replay video { width: 100%; border-radius: 10px; background: #000;
+                  display: block; aspect-ratio: 16 / 9; object-fit: cover;
+                  object-position: 38% 58%; }
+  .replay .pending {
+    aspect-ratio: 16/9; display: flex; align-items: center;
+    justify-content: center; color: var(--dim); background: #000;
+    border-radius: 10px; font-size: .9rem;
+  }
+  .caption { margin-top: .55rem; font-size: .92rem; }
+  .caption b { color: var(--text); }
+  .live-block { margin-top: 1rem; padding-top: .9rem;
+                border-top: 1px solid var(--border); }
+  .live-status { margin-top: .5rem; font-size: .95rem; font-weight: 700; }
+  .live-status.holding { color: var(--go-bright); }
+  .live-status.hazard { color: var(--warn); }
+  .run-live {
+    display: block; width: 100%; margin-top: .7rem; padding: .8rem;
+    font-size: 1rem; font-weight: 800; color: var(--text);
+    background: var(--bg); border: 2px solid var(--accent);
+    border-radius: 10px; cursor: pointer;
+  }
+  .run-live:hover { background: rgba(76,159,254,.12); }
+  .run-live:disabled { opacity: .45; cursor: default; }
+
+  /* ---------- footer / drawer ---------- */
+  footer { margin-top: 1.4rem; color: var(--dim); font-size: .8rem; }
+  details { margin-top: 1rem; color: var(--dim); }
+  details summary { cursor: pointer; font-size: .85rem; font-weight: 700;
+                    letter-spacing: .06em; text-transform: uppercase; }
+  .eng { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+         gap: 1rem; margin-top: .8rem; font-size: .85rem; }
+  .eng .cell { background: var(--panel); border: 1px solid var(--border);
+               border-radius: 10px; padding: .8rem; }
+  .eng b { color: var(--text); }
+  .axis { display: grid; grid-template-columns: 52px 1fr 64px; gap: .4rem;
+          align-items: center; margin-top: .25rem; }
+  .axis .name { font-family: ui-monospace, monospace; font-size: .75rem; }
+  .bar-track { position: relative; height: 9px; background: var(--bg);
+               border: 1px solid var(--border); border-radius: 5px;
+               overflow: hidden; }
+  .bar-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+             background: var(--border); }
+  .bar-fill { position: absolute; top: 1px; bottom: 1px;
+              background: var(--accent); border-radius: 3px; }
+  .bar-fill.veto { background: var(--border); }
+  .axis .val { font-family: ui-monospace, monospace; font-size: .72rem;
+               text-align: right; }
+  .eng select, .eng button { background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 7px; padding: .3rem .5rem; }
+
+  /* ---------- tabs + explanations view ---------- */
+  .tabs { display: flex; gap: .5rem; margin-top: 1rem; }
+  .tabs button {
+    padding: .55rem 1.1rem; font-size: .9rem; font-weight: 800;
+    letter-spacing: .04em; color: var(--dim); background: var(--panel);
+    border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
+  }
+  .tabs button.active { color: var(--accent); border-color: var(--accent); }
+  .side-handle {
+    position: fixed; right: 0; top: 38%; z-index: 60;
+    writing-mode: vertical-rl; padding: .85rem .5rem;
+    background: var(--accent); color: #fff; font-weight: 800;
+    font-size: .78rem; letter-spacing: .1em; border: 0;
+    border-radius: 10px 0 0 10px; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(0,0,0,.45);
+  }
+  .side-handle:hover { filter: brightness(1.12); }
+  .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 70; }
+  body.how-open .backdrop { opacity: 1; pointer-events: auto; }
+  #how-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 80;
+    width: min(600px, 94vw); background: var(--bg);
+    border-left: 1px solid var(--border);
+    transform: translateX(103%); transition: transform .25s ease;
+    overflow-y: auto; padding: 1rem 1.2rem 2.5rem;
+  }
+  body.how-open #how-drawer { transform: translateX(0); }
+  .drawer-head { display: flex; align-items: center; gap: .8rem;
+    position: sticky; top: 0; background: var(--bg); padding: .4rem 0 .6rem;
+    border-bottom: 1px solid var(--border); }
+  .drawer-head h2 { font-size: 1.05rem; }
+  .drawer-close { margin-left: auto; background: var(--panel);
+    color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+    padding: .35rem .75rem; cursor: pointer; font-weight: 800; }
+  .xp {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.1rem 1.2rem; margin-top: 1.1rem;
+  }
+  .xp h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: .5rem; }
+  .xp p, .xp li { font-size: .92rem; color: var(--text); }
+  .xp p + p { margin-top: .55rem; }
+  .xp ul { margin: .4rem 0 0 1.1rem; }
+  .xp li + li { margin-top: .35rem; }
+  .xp .q { font-weight: 800; margin-top: .8rem; }
+  .xp .q:first-of-type { margin-top: 0; }
+  .xp .a { color: var(--dim); font-size: .9rem; margin-top: .15rem; }
+  .xp table { width: 100%; border-collapse: collapse; margin-top: .5rem;
+              font-size: .88rem; }
+  .xp th, .xp td { text-align: left; padding: .45rem .5rem;
+                   border-bottom: 1px solid var(--border); }
+  .xp th { color: var(--dim); font-size: .72rem; text-transform: uppercase;
+           letter-spacing: .08em; }
+  .xp dt { font-weight: 800; margin-top: .6rem; font-size: .9rem; }
+  .xp dd { color: var(--dim); font-size: .88rem; margin-left: 0; }
+  .xp code { background: var(--bg); border: 1px solid var(--border);
+             border-radius: 5px; padding: .05rem .35rem; font-size: .85em; }
+  .hl-good { color: var(--go-bright); font-weight: 700; }
+  .hl-bad { color: var(--bad-bright); font-weight: 700; }
+  .hl-warn { color: var(--warn); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="brand">MIND THE GAP</div>
+<h1 id="headline">This robot knows the item will not fit. It tries anyway.</h1>
+<p class="sub">One neural network gets a camera image and moves a robot arm.
+A frozen probe reads what that network <i>believes</i> mid-inference.
+Below: its belief, its plan, the contradiction — and the fix. Follow the
+steps top to bottom.</p>
+
+<div class="tabs">
+  <button id="tab-how">? HOW IT ALL WORKS — open the project explainer</button>
+</div>
+
+<!-- ======================= STEP 1 ======================= -->
+<div class="step">
+  <div class="step-head"><div class="step-num">1</div>
+    <h2>Pick the carton</h2></div>
+  <div class="step-why">Same table, same bottle, same robot — the only thing
+  that changes is the carton. Every click below re-runs the model for real.</div>
+  <div class="scene-btns">
+    <button class="scene fits active" id="btn-fits">DEEP CARTON
+      <small>the bottle fits inside</small></button>
+    <button class="scene nofit" id="btn-nofit">SHALLOW CARTON
+      <small>too shallow — packing it is hazardous</small></button>
+  </div>
+  <div class="variant-row" id="variant-row"
+       title="4 different episode starts per carton. None were used to fit the probe — the readout has never seen them.">
+    <span class="lbl">try to fool it — held-out episode starts:</span>
+  </div>
+</div>
+
+<!-- ======================= STEP 2 ======================= -->
+<div class="step">
+  <div class="step-head"><div class="step-num">2</div>
+    <h2>This is what the robot sees</h2></div>
+  <div class="cam">
+    <img id="frame" alt="robot scene">
+    <span class="callout" id="lab-carton" style="left:27%; top:21%;">CARTON</span>
+    <span class="callout bad" id="lab-shallow" style="left:45%; top:38%; display:none;">TOO SHALLOW</span>
+    <span class="callout" id="lab-item" style="left:11%; top:46%;">ITEM</span>
+  </div>
+  <div class="under-note">Top-down camera in the Isaac simulator: robot arm in
+  yellow, bottle at the gripper (left), target carton at top. This exact image
+  is the model's only visual input.</div>
+</div>
+
+<!-- ======================= STEP 3 ======================= -->
+<div class="step">
+  <div class="step-head"><div class="step-num">3</div>
+    <h2>What happens inside the robot — computed live, right now</h2></div>
+  <div class="step-why">One forward pass of the policy on the frame above
+  produces both of these. Nothing is scripted: the belief is decoded from the
+  network's own hidden state; the plan is its actual motor output.</div>
+  <div class="inside">
+    <div class="thought">
+      <div class="lab"><span class="live-dot"></span>What it believes</div>
+      <div class="big fits" id="belief-big">…</div>
+      <div class="small" id="belief-note"></div>
+    </div>
+    <div class="thought">
+      <div class="lab">What it plans to do</div>
+      <div class="big" id="plan-big">…</div>
+      <div class="small" id="plan-note"></div>
+    </div>
+  </div>
+
+  <div class="band agree" id="band-agree">
+    <h3>✓ Belief and plan agree</h3>
+    <p>The item fits, and the robot plans a safe placement. No gap here.</p>
+  </div>
+  <div class="band gap" id="band-gap">
+    <h3>⚠ THE GAP: it knows — and does it anyway</h3>
+    <p>The network's own hidden state says the placement is impossible.
+    Its action head plans it regardless. The knowledge is there; it just
+    isn't wired to the behavior.</p>
+  </div>
+  <div class="proof" id="meta"></div>
+</div>
+
+<!-- ======================= STEP 4 ======================= -->
+<div class="step">
+  <div class="step-head"><div class="step-num">4</div>
+    <h2>The fix: wire its own belief to a veto</h2></div>
+  <div class="step-why">The same frozen probe, run as a GO / HOLD gate on the
+  same hidden state. No retraining, no new model — the belief it was ignoring
+  becomes the safety check.</div>
+  <button class="use-btn" id="use-btn">CONNECT SAFETY LAYER — use the robot's own knowledge</button>
+  <div class="gate-state saved" id="gate-saved">
+    <h3>✓ HAZARD PREVENTED — HOLD</h3>
+    <p>The gate read the belief and vetoed the motion. The arm holds still.</p>
+    <div class="saved-facts">
+      <div><b>Planned</b> INSERT</div>
+      <div><b>Executed</b> HOLD</div>
+      <div><b>Retraining</b> NONE</div>
+    </div>
+    <button class="disconnect" id="disconnect-btn">disconnect safety layer</button>
+  </div>
+  <div class="gate-state pass" id="gate-pass">
+    <h3>✓ GO — gate connected, placement allowed</h3>
+    <p>Belief says the item fits, so the gate lets the plan through unchanged.
+    It only vetoes when the robot itself believes the action is impossible.
+    <button class="disconnect" id="disconnect-btn2">disconnect</button></p>
+  </div>
+</div>
+
+<!-- ======================= STEP 5 ======================= -->
+<div class="step">
+  <div class="step-head"><div class="step-num">5</div>
+    <h2>Watch it happen in the simulator</h2></div>
+  <div class="replay">
+    <span class="src-badge rec">recorded earlier — same scene &amp; gate setting</span>
+    <video id="replay-video" muted playsinline loop autoplay preload="auto"
+           style="display:none"></video>
+    <div class="pending" id="replay-pending">replay loads when a condition is selected</div>
+    <div class="caption" id="replay-caption"></div>
+    <div class="under-note">Steps 3–4 above are computed live on every click
+    (~0.8 s per forward pass). Full simulator physics takes minutes, so this
+    clip is the outcome recorded under exactly this carton + gate setting.</div>
+  </div>
+  <div class="live-block" id="live-panel" style="display:none">
+    <span class="src-badge live">fully live — persistent simulator</span>
+    <img id="live-frame" style="width:100%; border-radius:10px; background:#000; aspect-ratio:4/3; object-fit:contain; display:none" alt="live isaac">
+    <div class="live-status" id="live-status">warming up…</div>
+    <button class="run-live" id="run-live-btn">▶ RUN LIVE — fresh reset, fresh inference, live execution</button>
+    <div class="under-note">Live mode resets the scene, runs the model on the
+    freshly rendered frame, and executes the decision in the simulator in real
+    time. A placement or hazardous attempt takes 60–90 s; a HOLD is
+    near-immediate. Uses the safety-layer setting from step 4.</div>
+  </div>
+</div>
+
+<footer>
+  Honest split: the policy, frozen probe, and validation research existed
+  before tonight (private, reached over HTTP). This debugger — UI, proxy,
+  wrapper — was built tonight. Full details in the README.
+</footer>
+
+<details>
+  <summary>Engineering details</summary>
+  <div class="eng">
+    <div class="cell" id="eng-numbers">
+      <b>Live probe readout</b><br>
+      logit <b id="eng-logit">—</b> · recorded-run logit <span id="eng-rec">—</span><br>
+      forward pass <span id="eng-lat">—</span> ms · decision <b id="eng-dec">—</b><br><br>
+      scene variant
+      <select id="eng-seed"><option>13</option><option>14</option><option>15</option><option>16</option></select>
+      <button id="eng-medium">try medium carton</button>
+    </div>
+    <div class="cell">
+      <b>Planned action (7-DOF, raw)</b>
+      <div id="eng-axes"></div>
+    </div>
+    <div class="cell">
+      <b>How it works</b><br>
+      A frozen linear probe (fit during prior research, no retraining tonight)
+      reads one hidden-state row of the VLA on the exact frame it acts from.
+      The same forward pass yields the policy's planned action. The safety
+      layer is that probe run as a GO/HOLD monitor: HOLD zeroes the motion
+      command. Belief and plan disagreeing on the shallow carton is the
+      knowledge-action gap.
+    </div>
+  </div>
+</details>
+
+<button class="side-handle" id="side-handle">? ABOUT THIS PROJECT</button>
+<div class="backdrop" id="backdrop"></div>
+
+<aside id="how-drawer">
+  <div class="drawer-head">
+    <h2>Mind the Gap — how it all works</h2>
+    <button class="drawer-close" id="drawer-close">✕ close</button>
+  </div>
+
+  <div class="xp">
+    <h2>The whole project in one paragraph</h2>
+    <p>A robot-arm policy (a vision-language-action network) looks at a table
+    and outputs arm motions. In research before this hackathon we found that,
+    while it acts, its internal activations contain a confident, linearly
+    readable <b>belief</b> about whether the item can fit the carton — and
+    that when the carton is too shallow, the policy
+    <span class="hl-warn">plans the packing motion anyway</span>. This demo
+    reads that belief live on every click, shows the contradiction, and then
+    wires the same belief into a <b>GO/HOLD veto</b> that stops the hazardous
+    placement. <span class="hl-good">No retraining anywhere.</span></p>
+  </div>
+
+  <div class="xp">
+    <h2>The cast</h2>
+    <ul>
+      <li><b>The world:</b> a packing table in the NVIDIA Isaac simulator.
+        Task: <i>“pack the bottle into the carton.”</i></li>
+      <li><b>The robot:</b> an SO-101 arm driven end-to-end by the policy —
+        no scripted motions in the loop.</li>
+      <li><b>The policy:</b> an OpenVLA-class network fine-tuned for this
+        task. Input: the camera image. Output: 7 numbers —
+        <code>dx dy dz droll dpitch dyaw gripper</code> — the next arm
+        motion.</li>
+      <li><b>The two cartons:</b> <span class="hl-good">deep</span> (bottle
+        fits) and <span class="hl-bad">shallow</span> (physically cannot
+        hold it — forcing the placement jams the bottle and drops it).</li>
+      <li><b>Held-out starts #13–16:</b> four episode variants per carton
+        that were <i>never</i> used when fitting the probe.</li>
+    </ul>
+  </div>
+
+  <div class="xp">
+    <h2>How do you read a robot's mind?</h2>
+    <p>Every forward pass of the network produces <b>hidden states</b> —
+    internal activation vectors at each layer. During prior research we
+    captured those activations across episodes and fit a tiny frozen
+    classifier (standardize, then logistic regression — one weight vector and
+    a bias) on a single hidden-state row. That probe predicts “fits” vs
+    “cannot fit”. It has not been touched since: same
+    <code>mean / scale / w / b</code>, tonight and in every validation run.</p>
+    <p>When you click a carton in the demo, the engine runs one real forward
+    pass of the policy on that frame, applies the frozen probe to the
+    hidden-state row, and returns the <b>logit</b>: positive means “cannot
+    fit”, negative means “fits”, magnitude is confidence. The margins here
+    are enormous — around <span class="hl-good">−14 on the deep carton</span>
+    vs <span class="hl-bad">+7 on the shallow one</span>.</p>
+    <p><b>How you know it's live:</b> next to the live logit we print the
+    logit this same episode logged when it was originally captured. They
+    agree to ~0.1 but not exactly — fresh compute, same frozen probe.</p>
+  </div>
+
+  <div class="xp">
+    <h2>Why this is interesting: the knowledge-action gap</h2>
+    <p>Having the belief is not the same as using it. The action head plans
+    the same packing motion whether the belief says “fits” or “cannot fit”.
+    In the prior research, steering the belief direction did not change
+    behavior, and further fine-tuning failed to wire the belief into the
+    actions. The information is stranded — one linear readout away from the
+    motor commands, but disconnected from them.</p>
+    <p>So when this robot damages the item, <i>“it didn't know”</i> is the
+    wrong diagnosis. It knew. The knowledge just wasn't connected to
+    behavior. That's the gap this project makes visible.</p>
+  </div>
+
+  <div class="xp">
+    <h2>The fix: a safety gate made from the robot's own belief</h2>
+    <p>The same frozen probe, run at the decision step as a GO/HOLD monitor:
+    if it reads “cannot fit”, the gate vetoes the motion — the six movement
+    numbers are zeroed and the arm holds still. One linear layer plus a
+    threshold; zero retraining.</p>
+    <p>In the validation run before the hackathon: hazardous placement
+    attempts went <span class="hl-good">4/4 → 0/4</span> with the gate
+    connected, correct placements stayed <span class="hl-good">4/4</span>,
+    and the gate's decisions were 10/10 with margins of 7+ logits.
+    Interpretability turned into an intervention.</p>
+  </div>
+
+  <div class="xp">
+    <h2>What's live and what's recorded</h2>
+    <table>
+      <tr><th>Thing on screen</th><th>When it's computed</th></tr>
+      <tr><td>Belief readout, planned action, GO/HOLD decision</td>
+          <td><b>Live</b> — a real forward pass on every click (~0.8 s)</td></tr>
+      <tr><td>Outcome video in step 5</td>
+          <td><b>Recorded earlier</b> in the simulator under the same carton
+              + gate setting (full physics takes minutes)</td></tr>
+      <tr><td>“RUN LIVE” block (when online)</td>
+          <td><b>Fully live</b> — persistent simulator resets, infers, and
+              executes in real time (60–90 s; a HOLD is near-immediate)</td></tr>
+    </table>
+  </div>
+
+  <div class="xp">
+    <h2>How it's wired, and what was built when</h2>
+    <p><code>browser → public proxy (this repo) → private engine on a lab
+    GPU</code>. The engine holds the policy weights, the frozen probe, and
+    the captured scenes; the public repo contains only the UI, the proxy,
+    and the interface contract. No credentials or server addresses live in
+    the repo.</p>
+    <p><b>Existed before the hackathon:</b> the policy, the probe, the
+    research findings, and the captured scenes.
+    <b>Built during the hackathon:</b> this debugger — UI, proxy, client
+    contract, and the thin HTTP wrapper on the server. The split is stated
+    in the README, and the private repo's commit history proves the research
+    predates tonight.</p>
+  </div>
+
+  <div class="xp">
+    <h2>Questions you might be asking</h2>
+    <div class="q">Is the probe just detecting that the carton looks different?</div>
+    <div class="a">That was tested: an identical probe trained with shuffled
+    labels — same pipeline, same features — fails to produce the
+    carton-conditional behavior. The specific belief content does the work,
+    not “any classifier on these pixels”.</div>
+    <div class="q">Is this cherry-picked?</div>
+    <div class="a">The demo starts are held out from probe fitting, all four
+    variants per carton are one click away, and every click shows the live
+    logit next to the originally recorded one.</div>
+    <div class="q">Why not just train the robot better?</div>
+    <div class="a">Tried in the prior research: additional fine-tuning at
+    multiple budgets did not wire the belief into behavior. The fix that
+    works is one frozen linear readout — which is the point: the knowledge
+    was already there.</div>
+    <div class="q">Does it generalize?</div>
+    <div class="a">The same frozen readout transfers across sibling
+    checkpoints of this policy family. It is anchored to the validated scene
+    layout, though — moving the carton elsewhere degrades the readout.
+    Honest limitation, stated as such.</div>
+    <div class="q">Why does this matter beyond a demo?</div>
+    <div class="a">It's a recipe: find a safety-relevant belief inside a
+    policy, freeze a probe on it, and run it as a runtime monitor with veto
+    power — a safety layer extracted from the model itself, with no
+    retraining and sub-second overhead.</div>
+  </div>
+
+  <div class="xp">
+    <h2>Glossary</h2>
+    <dl>
+      <dt>VLA (vision-language-action model)</dt>
+      <dd>A neural network that maps camera images (+ an instruction) directly
+      to robot actions.</dd>
+      <dt>Forward pass</dt>
+      <dd>One run of the network: image in, action out. Everything live in
+      this demo happens during single forward passes.</dd>
+      <dt>Hidden state</dt>
+      <dd>The network's internal activation vectors between layers — what it
+      “thinks” en route to its output.</dd>
+      <dt>Linear probe</dt>
+      <dd>A tiny frozen classifier (weights + bias) applied to a hidden
+      state to decode information from it. Frozen = never updated after
+      fitting.</dd>
+      <dt>Logit</dt>
+      <dd>The probe's raw score. Positive → “cannot fit”, negative → “fits”;
+      bigger magnitude → more confident.</dd>
+      <dt>GO / HOLD gate</dt>
+      <dd>The probe used as a veto: HOLD zeroes the six motion numbers so the
+      arm stays still; GO passes the plan through unchanged.</dd>
+      <dt>Held-out</dt>
+      <dd>Data the probe never saw during fitting — the demo runs on these.</dd>
+      <dt>Isaac Sim</dt>
+      <dd>NVIDIA's robotics simulator, where the scenes, physics, and robot
+      live.</dd>
+    </dl>
+  </div>
+</aside>
+
+<script>
+const AXES = ["dx","dy","dz","droll","dpitch","dyaw","gripper"];
+let state = { scene: "control", seed: 13, gateOn: false, last: null };
+const $ = id => document.getElementById(id);
+
+AXES.forEach(a => {
+  const row = document.createElement("div");
+  row.className = "axis";
+  row.innerHTML = `<span class="name">${a}</span>
+    <div class="bar-track"><div class="bar-mid"></div>
+    <div class="bar-fill" id="bar-${a}" style="left:50%;width:0"></div></div>
+    <span class="val" id="val-${a}">—</span>`;
+  $("eng-axes").appendChild(row);
+});
+
+const VARIANTS = [13, 14, 15, 16];
+VARIANTS.forEach(s => {
+  const b = document.createElement("button");
+  b.className = "variant" + (s === state.seed ? " active" : "");
+  b.id = "variant-" + s;
+  b.textContent = "#" + s;
+  b.onclick = () => { state.seed = s; $("eng-seed").value = String(s);
+                      syncVariants(); refresh(); };
+  $("variant-row").appendChild(b);
+});
+function syncVariants() {
+  VARIANTS.forEach(s => $("variant-" + s).className =
+    "variant" + (s === state.seed ? " active" : ""));
+}
+
+function conf(logit) {
+  const m = Math.abs(logit);
+  return m > 5 ? "Very high" : m > 2 ? "High" : "Moderate";
+}
+
+function replayKey() {
+  if (state.scene === "shallow") return state.gateOn ? "hold_gated" : "unsafe_attempt";
+  if (state.scene === "control") return "go_valid";
+  return null; // medium: no replay clip
+}
+
+const REPLAY_TEXT = {
+  go_valid: "<b>Outcome: item placed successfully.</b> Deep carton — the robot completes the packing task.",
+  unsafe_attempt: "<b>Outcome: unsafe attempt.</b> Safety layer disconnected — the robot carries the item to the too-shallow carton, jams above it, and drops it uncontrolled.",
+  hold_gated: "<b>Outcome: hazard prevented.</b> Safety layer connected — the HOLD verdict stops the robot before any unsafe motion.",
+};
+
+function setReplay() {
+  const key = replayKey();
+  const v = $("replay-video"), p = $("replay-pending"), c = $("replay-caption");
+  if (!key) { v.style.display = "none"; p.style.display = "flex";
+              p.textContent = "no replay for this condition"; c.innerHTML = ""; return; }
+  fetch(`/api/replay/${key}`, {method: "HEAD"}).then(r => {
+    if (r.ok) {
+      v.src = `/api/replay/${key}`; v.style.display = "block";
+      p.style.display = "none"; v.play().catch(() => {});
+      c.innerHTML = REPLAY_TEXT[key];
+    } else {
+      v.style.display = "none"; p.style.display = "flex";
+      p.textContent = "validated replay rendering — available shortly";
+      c.innerHTML = REPLAY_TEXT[key];
+    }
+  }).catch(() => {});
+}
+
+function render() {
+  const r = state.last;
+  if (!r) return;
+  const hazard = r.belief_logit > 0;
+  const planMoves = AXES.slice(0,6).some(a => Math.abs(r.planned_action[a]) > 1e-4);
+  const vetoed = state.gateOn && r.hold;
+
+  // step 2 label
+  $("lab-shallow").style.display = (state.scene === "shallow") ? "inline" : "none";
+
+  // step 3 — belief
+  const bb = $("belief-big");
+  bb.textContent = hazard ? "“THE ITEM WILL NOT FIT”" : "“THE ITEM FITS”";
+  bb.className = "big " + (hazard ? "nofit" : "fits");
+  $("belief-note").textContent =
+    `decoded from its hidden state · confidence: ${conf(r.belief_logit)} ` +
+    `(logit ${r.belief_logit > 0 ? "+" : ""}${r.belief_logit.toFixed(1)})`;
+
+  // step 3 — plan
+  const pb = $("plan-big");
+  if (planMoves && hazard) { pb.textContent = "PACK IT ANYWAY"; pb.className = "big anyway"; }
+  else if (planMoves) { pb.textContent = "INSERT INTO CARTON"; pb.className = "big"; }
+  else { pb.textContent = "HOLD STILL"; pb.className = "big"; }
+  $("plan-note").textContent = planMoves
+    ? "its action head outputs motion toward the carton"
+    : "its action head outputs no motion";
+
+  // step 3 — verdict band + provenance line
+  $("band-agree").style.display = hazard ? "none" : "block";
+  $("band-gap").style.display = hazard ? "block" : "none";
+  $("meta").textContent =
+    `Live forward pass: ${r.latency_ms} ms · live logit ` +
+    `${r.belief_logit.toFixed(2)} vs original recorded run ` +
+    `${r.recorded_logit == null ? "n/a" : r.recorded_logit.toFixed(2)} — ` +
+    `same frozen probe, nothing tuned for this demo.`;
+
+  // step 4 — gate
+  $("use-btn").style.display = state.gateOn ? "none" : "block";
+  $("gate-saved").style.display = (state.gateOn && r.hold) ? "block" : "none";
+  $("gate-pass").style.display = (state.gateOn && !r.hold) ? "block" : "none";
+
+  // engineering drawer
+  $("eng-logit").textContent = r.belief_logit.toFixed(2);
+  $("eng-rec").textContent = r.recorded_logit == null ? "n/a" : r.recorded_logit.toFixed(2);
+  $("eng-lat").textContent = r.latency_ms;
+  $("eng-dec").textContent = state.gateOn ? r.decision : r.decision + " (advisory — layer disconnected)";
+  const acts = vetoed ? r.executed_action : r.planned_action;
+  const scale = Math.max(0.05, ...AXES.map(a => Math.abs(r.planned_action[a])));
+  AXES.forEach(a => {
+    const frac = Math.max(-1, Math.min(1, acts[a] / scale)) * 50;
+    const bar = $(`bar-${a}`);
+    bar.className = "bar-fill" + (vetoed ? " veto" : "");
+    if (frac >= 0) { bar.style.left = "50%"; bar.style.width = frac + "%"; }
+    else { bar.style.left = (50 + frac) + "%"; bar.style.width = (-frac) + "%"; }
+    $(`val-${a}`).textContent = acts[a].toFixed(4);
+  });
+
+  setReplay();
+}
+
+async function refresh() {
+  $("frame").src = `/api/frame/${state.scene}/${state.seed}?t=${Date.now()}`;
+  try {
+    const r = await fetch("/api/gate", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({scene: state.scene, seed: state.seed}),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    state.last = await r.json();
+    render();
+  } catch (e) { console.error(e); }
+}
+
+$("btn-fits").onclick = () => {
+  state.scene = "control";
+  $("btn-fits").classList.add("active"); $("btn-nofit").classList.remove("active");
+  refresh();
+};
+$("btn-nofit").onclick = () => {
+  state.scene = "shallow";
+  $("btn-nofit").classList.add("active"); $("btn-fits").classList.remove("active");
+  refresh();
+};
+$("use-btn").onclick = () => { state.gateOn = true; render(); };
+$("disconnect-btn").onclick = () => { state.gateOn = false; render(); };
+$("disconnect-btn2").onclick = () => { state.gateOn = false; render(); };
+$("eng-seed").onchange = e => { state.seed = parseInt(e.target.value);
+                                syncVariants(); refresh(); };
+$("eng-medium").onclick = () => {
+  state.scene = "medium";
+  $("btn-fits").classList.remove("active"); $("btn-nofit").classList.remove("active");
+  refresh();
+};
+
+refresh();
+
+/* ---------- side explainer drawer ---------- */
+function openHow(open) { document.body.classList.toggle("how-open", open); }
+$("tab-how").onclick = () => openHow(true);
+$("side-handle").onclick = () => openHow(true);
+$("drawer-close").onclick = () => openHow(false);
+$("backdrop").onclick = () => openHow(false);
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") openHow(false);
+});
+
+/* ---------- LIVE ISAAC mode (step 5, shown when worker online) ---------- */
+let livePoll = null, framePoll = null;
+
+const LIVE_STATUS_TEXT = {
+  RESETTING: "Resetting scene…",
+  READY: "Scene ready — press RUN LIVE",
+  INFERRING: "Running live inference…",
+  HOLD: "Safety decision: HOLD — robot stays still",
+  EXECUTING: "Executing in simulator…",
+  COMPLETED: "Run complete.",
+  FAILED: "Run failed — see engineering details.",
+};
+
+function liveStatusLine(s) {
+  let txt = LIVE_STATUS_TEXT[s.state] || s.state;
+  const cls = s.state === "HOLD" ? "holding"
+            : (s.state === "EXECUTING" && s.scene === "shallow") ? "hazard" : "";
+  if (s.state === "EXECUTING" && s.scene === "shallow")
+    txt = "⚠ Knowledge-action gap — hazardous attempt executing live…";
+  if (s.state === "COMPLETED" && s.result)
+    txt = s.result.outcome === "held"
+      ? "✓ HAZARD PREVENTED — live HOLD, robot never moved (" + s.result.episode_s + " s)"
+      : "Run complete (" + s.result.episode_s + " s).";
+  if (s.decision && s.state !== "RESETTING")
+    txt += `  ·  live belief logit ${s.decision.belief_logit} → ${s.decision.decision}`;
+  const el = $("live-status");
+  el.textContent = txt;
+  el.className = "live-status " + cls;
+}
+
+function pollLive() {
+  fetch("/api/live/status").then(r => r.json()).then(s => {
+    const panel = $("live-panel");
+    if (s.state === "OFFLINE") { panel.style.display = "none"; return; }
+    panel.style.display = "block";
+    liveStatusLine(s);
+    const busy = ["RESETTING", "INFERRING", "HOLD", "EXECUTING"].includes(s.state);
+    $("run-live-btn").disabled = busy;
+    if (busy && !framePoll) {
+      framePoll = setInterval(() => {
+        const img = $("live-frame");
+        img.style.display = "block";
+        img.src = `/api/live/frame?t=${Date.now()}`;
+      }, 400);
+    } else if (!busy && framePoll) {
+      clearInterval(framePoll); framePoll = null;
+    }
+  }).catch(() => {});
+}
+
+$("run-live-btn").onclick = async () => {
+  const scene = state.scene === "shallow" ? "shallow" : "control";
+  $("run-live-btn").disabled = true;
+  await fetch("/api/live/start", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({scene, safety_enabled: state.gateOn}),
+  });
+};
+
+pollLive();
+livePoll = setInterval(pollLive, 1000);
+</script>
+</body>
+</html>

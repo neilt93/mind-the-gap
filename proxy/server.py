@@ -67,6 +67,28 @@ def replay(key: str):
                     status_code=r.status_code)
 
 
+@app.get("/api/replay_trace/{key}")
+def replay_trace(key: str):
+    r = httpx.get(f"{ENGINE_URL}/replay_trace/{key}", timeout=30.0)
+    return Response(r.content, media_type="application/json",
+                    status_code=r.status_code)
+
+
+@app.get("/api/trace/{arm}")
+def trace(arm: str):
+    r = httpx.get(f"{ENGINE_URL}/trace/{arm}", timeout=30.0)
+    return Response(r.content, media_type="application/json",
+                    status_code=r.status_code)
+
+
+@app.get("/api/trace_video/{arm}")
+@app.head("/api/trace_video/{arm}")
+def trace_video(arm: str):
+    r = httpx.get(f"{ENGINE_URL}/trace_video/{arm}", timeout=60.0)
+    return Response(r.content, media_type="video/mp4",
+                    status_code=r.status_code)
+
+
 @app.get("/api/live/status")
 def live_status():
     try:
