@@ -333,6 +333,10 @@
     <button id="s-shallow" class="active nofit">SHALLOW CARTON</button>
     <button id="s-deep" class="fits">DEEP CARTON</button>
   </span>
+  <span class="scenes">
+    <button id="i-bottle" class="active">ITEM: BOTTLE</button>
+    <button id="i-cube">ITEM: CUBE</button>
+  </span>
 </div>
 
 <details>
@@ -559,9 +563,13 @@ const PHASE_LABEL = {
 const CARRY_PHASES = ["JOINT_HANDOFF", "CARTON_APPROACH",
                       "CARTON_DESCEND", "CARTON_DESCEND_VERIFY"];
 
-let st = { scene: "shallow", mode: "native", trace: null, frozeOnce: false };
+let st = { scene: "shallow", mode: "native", item: "bottle",
+           trace: null, frozeOnce: false };
 
 function key() { return `${st.mode}_${st.scene}`; }
+function clipKey() {
+  return CLIP[key()] + (st.item === "cube" ? "_cube" : "");
+}
 
 function phaseAt(t) {
   const tr = st.trace;
@@ -606,8 +614,9 @@ function render(t) {
   const dec = tr && tr.decision;
   const hazard = dec ? dec.belief_logit > 0 : st.scene === "shallow";
   $("tnow").textContent = `t = ${t.toFixed(1)}s`;
+  const itemName = st.item === "cube" ? "cube" : "bottle";
   $("r-sees").textContent = st.scene === "shallow"
-    ? "bottle + carton (too shallow)" : "bottle + deep carton";
+    ? itemName + " + carton (too shallow)" : itemName + " + deep carton";
   const rb = $("r-belief");
   rb.textContent = hazard ? "ITEM WILL NOT FIT" : "ITEM FITS";
   rb.className = "v " + (hazard ? "nofit" : "fits");
@@ -655,7 +664,15 @@ function render(t) {
 }
 
 async function load(autoplay) {
-  const clip = CLIP[key()];
+  let clip = clipKey();
+  if (st.item === "cube") {   // cube variant may not be rendered yet
+    const head = await fetch(`/api/replay/${clip}`, {method: "HEAD"})
+      .catch(() => null);
+    if (!head || !head.ok) {
+      clip = CLIP[key()];
+      $("scene-label").textContent = "CUBE VARIANT RENDERING — showing bottle run";
+    }
+  }
   $("freeze").classList.remove("show");
   st.frozeOnce = st.mode !== "native";
   try {
@@ -710,6 +727,19 @@ $("m-native").onclick = () => setMode("native");
 $("m-wired").onclick = () => setMode("wired");
 $("s-shallow").onclick = () => setScene("shallow");
 $("s-deep").onclick = () => setScene("control");
+function setItem(i) {
+  st.item = i;
+  $("i-bottle").classList.toggle("active", i === "bottle");
+  $("i-cube").classList.toggle("active", i === "cube");
+  load(true);
+}
+$("i-bottle").onclick = () => setItem("bottle");
+$("i-cube").onclick = () => setItem("cube");
+// Show the cube tab only when cube clips exist on the server.
+$("i-bottle").parentElement.style.display = "none";
+fetch("/api/replay/unsafe_attempt_cube", {method: "HEAD"})
+  .then(r => { if (r.ok) $("i-bottle").parentElement.style.display = ""; })
+  .catch(() => {});
 $("connect").onclick = () => setMode("wired");
 
 /* ---------- side explainer drawer ---------- */
