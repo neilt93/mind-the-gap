@@ -805,8 +805,14 @@ function render(t) {
       $("r-belief").textContent = "motion vetoed (HOLD demo)";
       $("r-belief").className = "v hold";
     } else {
-      $("r-belief").textContent = "task completed successfully";
-      $("r-belief").className = "v fits";
+      const durO = v.duration || 0;
+      if (durO && t >= durO - 0.15) {
+        $("r-belief").textContent = "task completed successfully";
+        $("r-belief").className = "v fits";
+      } else {
+        $("r-belief").textContent = "in progress";
+        $("r-belief").className = "v";
+      }
     }
     $("gap-line").className = "gap-line";
     const stI = (st.trace && st.trace.steps.length)
