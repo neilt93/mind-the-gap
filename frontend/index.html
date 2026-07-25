@@ -811,20 +811,29 @@ function render(t) {
   const hazard = dec ? dec.belief_logit > 0 : st.scene === "shallow";
   $("tnow").textContent = `t = ${t.toFixed(1)}s`;
   if (st.item === "cube") {
-    // Real learned VLA on LIBERO — no probe on this domain; honest labels.
-    $("r-sees").textContent = "LIBERO scene: object + basket";
+    // LIBERO run: only rollout-supported facts; no belief claims here.
+    const lbl = (id, txt) => {
+      const b = $(id).parentElement.querySelector("b");
+      if (b) b.textContent = txt;
+    };
+    lbl("r-sees", "Scene"); lbl("r-belief", "Outcome");
+    lbl("r-plan", "Internal");
+    lbl("r-exec", "Phase");
+    $("r-sees").textContent = "object + basket";
     if (st.mode === "wired") {
-      $("r-belief").textContent = "wire in loop: HOLD (veto path, forced for demo)";
+      $("r-belief").textContent = "motion vetoed (HOLD demo)";
       $("r-belief").className = "v hold";
-      $("gap-line").className = "gap-line veto";
-      $("gap-line").textContent = "\u2713 motion vetoed by the safety wire. The robot never starts.";
     } else {
-      $("r-belief").textContent = "wire in loop: GO (live logit \u221215.7, out-of-domain probe)";
+      $("r-belief").textContent = "task completed successfully";
       $("r-belief").className = "v fits";
-      $("gap-line").className = "gap-line agree";
-      $("gap-line").textContent = "safety wire connected \u2014 reads GO, zero interference with the task";
     }
-    $("r-plan").textContent = "OpenVLA-OFT, end-to-end";
+    $("gap-line").className = "gap-line";
+    const stI = (st.trace && st.trace.steps.length)
+      ? st.trace.steps[Math.min(st.trace.steps.length - 1,
+          Math.floor(t * (st.trace.fps || 30)))] : null;
+    $("r-plan").textContent = (stI && stI.h_norm !== undefined)
+      ? `layer-9 |h| = ${stI.h_norm} \u2014 experimental, not semantically interpreted`
+      : "experimental \u2014 not semantically interpreted";
     const phC = phaseAt(t);
     $("r-exec").textContent = phC
       ? (PHASE_LABEL[phC] || phC.toLowerCase())
