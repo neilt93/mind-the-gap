@@ -929,9 +929,8 @@ $("i-cube").onclick = () => setItem("cube");
 // Show the reference tab only when the reference clip exists.
 $("i-bottle").parentElement.style.display = "none";
 $("s-shallow").parentElement.style.display = st.item === "cube" ? "none" : "";
-fetch("/api/replay/real_model_run", {method: "HEAD"})
-  .then(r => { if (r.ok) $("i-bottle").parentElement.style.display = ""; })
-  .catch(() => {});
+// view toggle permanently hidden — single clean-run demo
+
 $("connect").onclick = () => setMode("wired");
 
 /* ---------- side explainer drawer ---------- */
