@@ -317,6 +317,9 @@
       <div class="row"><b>Believes</b><span class="v" id="r-belief">·</span></div>
       <div class="row"><b>Plans</b><span class="v" id="r-plan">·</span></div>
       <div class="row"><b>Executes</b><span class="v" id="r-exec">·</span></div>
+      <div class="row" id="row-cmd" style="display:none"><b>Command</b><span class="v" id="r-cmd">·</span></div>
+      <div class="row" id="row-grip" style="display:none"><b>Gripper</b><span class="v" id="r-grip">·</span></div>
+      <div class="row" id="row-act" style="display:none"><b>Activity</b><span class="v mono" id="r-act">·</span></div>
     </div>
     <div class="explain" id="exec-explain"></div>
     <div class="gap-line" id="gap-line"></div>
@@ -731,6 +734,24 @@ function render(t) {
     $("exec-explain").textContent = phC && PHASE_EXPLAIN[phC]
       ? PHASE_EXPLAIN[phC][0] : "";
     $("exec-explain").className = "explain";
+    // Rollout-data rows: command / strength / gripper / activity
+    const stC = (tr && tr.steps.length)
+      ? tr.steps[Math.min(tr.steps.length - 1, Math.floor(t * (tr.fps || 30)))]
+      : null;
+    const showRow = (id, on) => $(id).style.display = on ? "" : "none";
+    if (stC && stC.command !== undefined) {
+      showRow("row-cmd", true);
+      $("r-cmd").textContent = st.mode === "wired"
+        ? "\u2014 vetoed (zeroed)"
+        : `${stC.command} (${stC.strength}, ${stC.strength_value})`;
+      showRow("row-grip", true);
+      $("r-grip").textContent = stC.gripper;
+      if (stC.h_norm !== undefined) {
+        showRow("row-act", true);
+        $("r-act").textContent = `layer-9 |h| = ${stC.h_norm}`;
+      } else showRow("row-act", false);
+    } else { showRow("row-cmd", false); showRow("row-grip", false);
+             showRow("row-act", false); }
     document.querySelectorAll("#moments .m").forEach((el, i) => {
       if (st.moments[i]) {
         const on = st.moments[i].t <= t + 0.02;
