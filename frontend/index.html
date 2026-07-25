@@ -555,7 +555,7 @@ async function load(autoplay) {
     ? ` This run's decision: logit ${dec.belief_logit} → ${dec.decision} (validated scene frame, live forward pass).`
     : "";
   const v = $("vid");
-  v.src = `/api/replay/${clip}`;
+  v.src = `/api/replay/${clip}?v=${Date.now()}`;  // bust stale cache
   v.load();
   v.onloadeddata = () => { render(0); if (autoplay) { v.play(); $("play").textContent = "⏸"; } };
   v.ontimeupdate = () => render(v.currentTime);
