@@ -170,6 +170,63 @@
   .hl-good { color: var(--go); font-weight: 700; }
   .hl-bad { color: var(--bad); font-weight: 700; }
   .hl-warn { color: var(--warn); font-weight: 700; }
+
+  /* ============ beautify pass 2 (additive) ============ */
+  body {
+    background:
+      radial-gradient(1100px 500px at 18% -8%, rgba(76,159,254,.10), transparent 60%),
+      radial-gradient(900px 420px at 96% 4%, rgba(63,212,99,.05), transparent 55%),
+      var(--bg);
+  }
+  header { padding: .2rem 0 .5rem; }
+  .brand { text-shadow: 0 0 22px rgba(76,159,254,.5); }
+  .scene-wrap {
+    box-shadow: 0 18px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(76,159,254,.12);
+    border-color: rgba(76,159,254,.25);
+  }
+  .scene-label {
+    backdrop-filter: blur(6px); background: rgba(10,12,18,.65);
+    border-color: rgba(76,159,254,.35); letter-spacing: .12em;
+  }
+  .trace {
+    box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    background: linear-gradient(180deg, #151a24 0%, #10141d 100%);
+  }
+  .trace h2 { display: flex; align-items: center; gap: .5rem; }
+  .trace h2::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--go); box-shadow: 0 0 10px var(--go);
+    animation: blink2 1.6s infinite;
+  }
+  @keyframes blink2 { 50% { opacity: .35; } }
+  .row { padding: .45rem 0; border-bottom: 1px solid rgba(42,48,64,.7); }
+  .row .v { font-size: 1.05rem; letter-spacing: .01em; }
+  .row b { opacity: .85; }
+  .t-now {
+    background: rgba(76,159,254,.08); border: 1px solid rgba(76,159,254,.22);
+    border-radius: 8px; padding: .3rem .6rem; align-self: flex-start;
+  }
+  .moments { padding-left: .2rem; }
+  .m { padding: .12rem 0; }
+  .deck {
+    box-shadow: 0 -10px 34px rgba(0,0,0,.35), 0 0 0 1px rgba(76,159,254,.08);
+    background: linear-gradient(180deg, #151a24, #10141d);
+  }
+  .deck button.play {
+    background: var(--accent); color: #fff; border: 0;
+    box-shadow: 0 4px 16px rgba(76,159,254,.4); border-radius: 50%;
+    width: 42px; height: 42px;
+  }
+  .modes button.active {
+    background: rgba(76,159,254,.12);
+    box-shadow: 0 0 14px rgba(76,159,254,.25) inset;
+  }
+  .gap-line.agree {
+    background: rgba(63,212,99,.07); border-color: rgba(63,212,99,.4);
+    color: var(--go);
+  }
+  details summary { opacity: .7; }
+  details summary:hover { opacity: 1; }
 </style>
 <style>
   /* ================= beautify layer (additive overrides) ================= */
@@ -325,7 +382,7 @@
     <div class="gap-line" id="gap-line"></div>
     <div class="moments" id="moments"></div>
 
-    <details class="concepts" id="concepts">
+    <details class="concepts" id="concepts" open>
       <summary>Concept probes · <b>1 validated</b> · 6 experimental</summary>
       <div class="c-row"><span class="c-name">Fit hazard: will it fit
         safely?<span class="c-tag val">VALIDATED</span></span>
@@ -673,7 +730,50 @@ function phaseAt(t) {
   return tr.steps[i] ? tr.steps[i].phase : null;
 }
 
+function deriveLiberoMoments(tr) {
+  // Every entry derives from recorded per-step data (command/gripper
+  // from executed actions, phases from the adapter) — no scripting.
+  const fps = tr.fps || 30, steps = tr.steps;
+  const M = [{t: 0, cls: "", label: "Scene observed"}];
+  const dec = tr.decision || {};
+  if (typeof dec.belief_logit === "number")
+    M.push({t: 0.05, cls: dec.hold ? "stop" : "",
+      label: dec.hold
+        ? `Wire veto: HOLD (live logit ${dec.belief_logit.toFixed(1)})`
+        : `Wire check: GO (live logit ${dec.belief_logit.toFixed(1)})`});
+  const firstAt = pred => {
+    const i = steps.findIndex(pred);
+    return i < 0 ? null : i / fps;
+  };
+  const add = (t, label, cls = "") => {
+    if (t != null) M.push({t, cls, label});
+  };
+  add(firstAt(x => x.command && x.command !== "hold position"),
+      "Approach begins");
+  add(firstAt(x => x.command === "move down"),
+      "Descending to object");
+  add(firstAt(x => x.gripper === "closing"), "Gripper closing");
+  add(firstAt(x => x.gripper === "holding"), "Object grasped");
+  add(firstAt(x => x.gripper === "holding" && x.command === "move up"),
+      "Lifting object");
+  add(firstAt(x => ["CARRY", "PLACE"].includes(x.phase)),
+      "Carrying toward basket");
+  add(firstAt(x => x.gripper === "releasing"), "Releasing into basket");
+  if (!dec.hold && steps.length)
+    M.push({t: (steps.length - 1) / fps, cls: "stop",
+            label: "Task complete \u2713"});
+  if (dec.hold && steps.length)
+    M.push({t: 0.2, cls: "stop",
+            label: "Robot holds still \u2014 veto active"});
+  const seen = new Set();
+  return M.filter(m => !seen.has(m.label) && seen.add(m.label))
+          .sort((a, b) => a.t - b.t);
+}
+
 function deriveMoments() {
+  if (st.item === "cube" && st.trace && st.trace.steps &&
+      st.trace.steps.some(x => x.command !== undefined))
+    return deriveLiberoMoments(st.trace);
   const tr = st.trace;
   const M = [{t: 0, cls: "", label: "Scene observed"}];
   const dec = tr && tr.decision;
