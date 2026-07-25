@@ -290,6 +290,28 @@
   .explain.safe { color: var(--go); }
   .latch { display: block; font-size: .66rem; color: var(--dim);
     font-weight: 600; letter-spacing: .03em; margin-top: .12rem; }
+
+  /* concept-probe coverage panel */
+  .concepts { margin-top: .3rem; font-size: .8rem; color: var(--dim); }
+  .concepts summary { cursor: pointer; font-weight: 700; font-size: .72rem;
+    letter-spacing: .08em; text-transform: uppercase; }
+  .concepts summary b { color: var(--go); }
+  .c-row { display: grid; grid-template-columns: 1fr auto; gap: .5rem;
+    align-items: baseline; padding: .3rem 0;
+    border-bottom: 1px solid rgba(147,160,180,.1); }
+  .c-name { color: var(--text); font-size: .8rem; }
+  .c-name .c-tag { font-size: .6rem; font-weight: 800; letter-spacing: .07em;
+    padding: .1rem .35rem; border-radius: 5px; margin-left: .4rem;
+    vertical-align: middle; }
+  .c-tag.val { color: var(--go); border: 1px solid var(--go); }
+  .c-tag.exp { color: var(--warn); border: 1px solid var(--warn); }
+  .c-val { font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .74rem; text-align: right; }
+  .c-val.nofit { color: var(--bad); font-weight: 700; }
+  .c-val.fits { color: var(--go); font-weight: 700; }
+  .c-val.pending { opacity: .55; }
+  .c-note { font-size: .7rem; line-height: 1.45; margin-top: .45rem;
+    color: var(--dim); }
 </style>
 </head>
 <body>
@@ -322,6 +344,37 @@
     <div class="explain" id="exec-explain"></div>
     <div class="gap-line" id="gap-line"></div>
     <div class="moments" id="moments"></div>
+
+    <details class="concepts" id="concepts">
+      <summary>Concept probes — <b>1 validated</b> · 6 experimental</summary>
+      <div class="c-row"><span class="c-name">Fit hazard — “will it fit
+        safely?”<span class="c-tag val">VALIDATED</span></span>
+        <span class="c-val" id="c-fit_hazard">—</span></div>
+      <div class="c-row"><span class="c-name">Grasp success<span
+        class="c-tag exp">EXPERIMENTAL</span></span>
+        <span class="c-val pending" id="c-grasp_success">probe not yet fit</span></div>
+      <div class="c-row"><span class="c-name">Target location<span
+        class="c-tag exp">EXPERIMENTAL</span></span>
+        <span class="c-val pending" id="c-target_location">probe not yet fit</span></div>
+      <div class="c-row"><span class="c-name">Collision risk<span
+        class="c-tag exp">EXPERIMENTAL</span></span>
+        <span class="c-val pending" id="c-collision_risk">probe not yet fit</span></div>
+      <div class="c-row"><span class="c-name">Task progress<span
+        class="c-tag exp">EXPERIMENTAL</span></span>
+        <span class="c-val pending" id="c-task_progress">probe not yet fit</span></div>
+      <div class="c-row"><span class="c-name">Wrong object<span
+        class="c-tag exp">EXPERIMENTAL</span></span>
+        <span class="c-val pending" id="c-wrong_object">probe not yet fit</span></div>
+      <div class="c-row"><span class="c-name">Goal completion<span
+        class="c-tag exp">EXPERIMENTAL</span></span>
+        <span class="c-val pending" id="c-goal_completion">probe not yet fit</span></div>
+      <div class="c-note">Experimental signals are preliminary probe outputs
+      and are not yet validated across held-out scenes. Only the fit-hazard
+      probe carries a validated claim. Motion labels above are
+      interpretations of the policy's action commands, not decoded
+      beliefs.</div>
+    </details>
+
     <div class="foot">Belief = frozen linear probe on the policy's hidden state,
       decoded at the episode's decision point; plan = the policy's own action
       command; executes = the controller's measured phase this timestep.
@@ -440,6 +493,24 @@
     vs <span class="hl-bad">+7 on the shallow one</span>. The episodes shown
     were never used to fit the probe, and Engineering details prints this
     run's exact logit.</p>
+  </div>
+
+  <div class="xp">
+    <h2>What can the engine decode today?</h2>
+    <p><b>Validated (1):</b> the <b>fit hazard</b> belief — “will this item
+    fit safely in that carton?” — held-out validated (10/10 decisions,
+    7+ logit margins). Everything in the demo rests on this probe and only
+    this probe.</p>
+    <p><b>Experimental candidates (6):</b> grasp success, target location,
+    collision risk, task progress, wrong object, goal completion — listed
+    in the trace panel's <i>Concept probes</i> section. These are
+    preliminary probe outputs and are <b>not yet validated across held-out
+    scenes</b>; each needs its own labelled data and validation before we
+    claim the model represents it.</p>
+    <p>Separately, the engine translates the policy's <i>action commands</i>
+    into readable motion concepts (moving toward the object, grasping,
+    carrying, releasing, GO vs HOLD) — those are interpretations of
+    outputs, not decoded beliefs, and the UI labels them as such.</p>
   </div>
 
   <div class="xp">
@@ -678,6 +749,9 @@ function render(t) {
     $("r-exec").className = "v";
     $("exec-explain").textContent = "";
     $("exec-explain").className = "explain";
+    const cf0 = $("c-fit_hazard");
+    cf0.textContent = "no probe on this scene";
+    cf0.className = "c-val pending";
     $("gap-line").className = "gap-line";
     const dur2 = v.duration || 0;
     $("time").textContent = `${t.toFixed(1)} / ${dur2.toFixed(1)}s`;
@@ -724,6 +798,30 @@ function render(t) {
     wrap.classList.toggle("danger", !!(hazard && ph && ph !== "HOLD"));
     wrap.classList.toggle("safe", ph === "HOLD" && hazard);
   }
+
+  // concept-probe panel: validated fit-hazard value + any experimental
+  // outputs the engine chooses to send (decision.concepts).
+  const cf = $("c-fit_hazard");
+  if (dec) {
+    cf.textContent = (hazard ? "NO-FIT " : "FIT ") +
+      `${dec.belief_logit > 0 ? "+" : ""}${(+dec.belief_logit).toFixed(1)}`;
+    cf.className = "c-val " + (hazard ? "nofit" : "fits");
+  } else { cf.textContent = "—"; cf.className = "c-val pending"; }
+  const cx = (dec && dec.concepts) || {};
+  ["grasp_success", "target_location", "collision_risk", "task_progress",
+   "wrong_object", "goal_completion"].forEach(k => {
+    const el = $("c-" + k);
+    if (!el) return;
+    const c = cx[k];
+    if (c && c.logit != null) {
+      el.textContent = `${c.label || (c.logit > 0 ? "yes" : "no")} ` +
+        `${c.logit > 0 ? "+" : ""}${(+c.logit).toFixed(1)} · preliminary`;
+      el.className = "c-val";
+    } else {
+      el.textContent = "probe not yet fit";
+      el.className = "c-val pending";
+    }
+  });
 
   document.querySelectorAll("#moments .m").forEach((el, i) => {
     el.classList.toggle("hit", st.moments[i].t <= t + 0.02);

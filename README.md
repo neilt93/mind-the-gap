@@ -69,6 +69,14 @@ Tonight's hack is the debugger that makes that pre-existing result **visible
 and interactive** — the belief, the contradicting plan, and the gate, live,
 with the carton flip in a judge's hands.
 
+**Concept coverage today:** one validated concept — *fit hazard* ("will this
+item fit safely?"), the probe behind everything above. The UI also lists six
+experimental candidate concepts (grasp success, target location, collision
+risk, task progress, wrong object, goal completion), clearly labeled: these
+are preliminary probe outputs, not yet validated across held-out scenes.
+Motion labels in the trace (approach / grasp / carry / release, GO vs HOLD)
+are interpretations of the policy's action commands, not decoded beliefs.
+
 ## Honest provenance split
 
 **Existed before Night Hack (private, referenced over HTTP, not in this repo):**

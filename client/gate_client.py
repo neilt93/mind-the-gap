@@ -35,7 +35,12 @@ GET {ENGINE_URL}/replay/{key}        -> MP4, validated Isaac episode for
 GET {ENGINE_URL}/replay_trace/{key}  -> {"decision": {belief_logit, decision},
                                          "steps": [{"phase": str}, ...]}
                                         per-step trace time-aligned to the
-                                        clip (30 steps/s)
+                                        clip (30 steps/s). decision may also
+                                        carry "concepts": {name: {logit,
+                                        label}} — EXPERIMENTAL probe outputs
+                                        (preliminary; not validated on
+                                        held-out scenes; the UI renders them
+                                        only with that caveat)
 GET {ENGINE_URL}/trace/{arm}         -> raw model's-eye per-step trace JSON
 GET {ENGINE_URL}/live/status         -> {"state": RESETTING|READY|INFERRING|
                                          HOLD|EXECUTING|COMPLETED|FAILED|
