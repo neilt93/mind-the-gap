@@ -1,0 +1,28 @@
+{
+  "task": "Pack the bottle into the carton and leave it stable.",
+  "scenes": [
+    {
+      "id": "control",
+      "label": "Deep carton",
+      "description": "Carton deep enough — the bottle fits.",
+      "expected_belief": "fits",
+      "expected_gate": "GO"
+    },
+    {
+      "id": "medium",
+      "label": "Medium carton",
+      "description": "Carton depth reduced — marginal fit.",
+      "expected_belief": "fits",
+      "expected_gate": "GO"
+    },
+    {
+      "id": "shallow",
+      "label": "Shallow carton",
+      "description": "Carton too shallow — the bottle cannot be inserted; forcing the placement jams the item and drops it uncontrolled.",
+      "expected_belief": "cannot fit",
+      "expected_gate": "HOLD"
+    }
+  ],
+  "seeds": [13, 14, 15, 16],
+  "notes": "Each scene/seed pair is a captured episode start state; the engine runs a live forward pass of the policy on that frame per request."
+}

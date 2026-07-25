@@ -1,0 +1,23 @@
+# secrets / env — never commit
+.env
+.env.*
+*.key
+*.pem
+*.p12
+id_rsa*
+id_ed25519*
+credentials*
+secrets*
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# node
+node_modules/
+
+# editor / os
+.DS_Store
+*.swp

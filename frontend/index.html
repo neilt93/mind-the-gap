@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mind the Gap — live VLA belief debugger</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --text: #e6edf3; --dim: #8b949e;
+    --go: #3fb950; --hold: #f85149; --warn: #d29922; --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; padding: 1.2rem 1.5rem;
+  }
+  header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1rem; }
+  h1 { font-size: 1.4rem; }
+  h1 .gap { color: var(--hold); }
+  header p { color: var(--dim); font-size: .9rem; }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: .6rem; align-items: center;
+    margin-bottom: 1rem;
+  }
+  .controls .group-label { color: var(--dim); font-size: .85rem; }
+  button.scene {
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: .5rem 1rem; font-size: .95rem; cursor: pointer;
+  }
+  button.scene.active { border-color: var(--accent); color: var(--accent); }
+  button.scene:hover { border-color: var(--dim); }
+  select {
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: .45rem .6rem;
+  }
+  .gate-toggle { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+  .switch { position: relative; width: 46px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; background: var(--border);
+    border-radius: 24px; cursor: pointer; transition: .2s;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 18px; width: 18px;
+    left: 3px; top: 3px; background: var(--text); border-radius: 50%;
+    transition: .2s;
+  }
+  .switch input:checked + .slider { background: var(--go); }
+  .switch input:checked + .slider::before { transform: translateX(22px); }
+
+  .grid {
+    display: grid; gap: 1rem;
+    grid-template-columns: minmax(280px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1fr);
+  }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem;
+  }
+  .panel h2 {
+    font-size: .8rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--dim); margin-bottom: .7rem;
+  }
+  .frame-wrap { position: relative; }
+  .frame-wrap img {
+    width: 100%; border-radius: 6px; display: block;
+    background: #000; min-height: 200px;
+  }
+  .frame-cap { color: var(--dim); font-size: .8rem; margin-top: .5rem; }
+
+  .belief-verdict { font-size: 1.25rem; font-weight: 700; margin-bottom: .6rem; }
+  .belief-verdict.fits { color: var(--go); }
+  .belief-verdict.hazard { color: var(--hold); }
+  .gauge { position: relative; height: 46px; margin: 0.4rem 0 0.2rem; }
+  .gauge-track {
+    position: absolute; top: 18px; left: 0; right: 0; height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--go) 0 55%, var(--warn) 55% 62%, var(--hold) 62% 100%);
+    opacity: .55;
+  }
+  .gauge-zero {
+    position: absolute; top: 10px; height: 26px; width: 2px;
+    background: var(--text); opacity: .8;
+  }
+  .gauge-needle {
+    position: absolute; top: 6px; height: 34px; width: 4px;
+    background: var(--text); border-radius: 2px;
+    transition: left .5s cubic-bezier(.2, .8, .2, 1);
+    box-shadow: 0 0 8px rgba(255,255,255,.5);
+  }
+  .gauge-labels {
+    display: flex; justify-content: space-between;
+    color: var(--dim); font-size: .75rem;
+  }
+  .logit-num { font-size: .95rem; color: var(--dim); margin-top: .4rem; }
+  .logit-num b { color: var(--text); font-size: 1.1rem; }
+
+  .decision-badge {
+    display: inline-block; margin-top: .8rem; padding: .35rem 1rem;
+    border-radius: 8px; font-weight: 800; font-size: 1.3rem;
+    letter-spacing: .05em;
+  }
+  .decision-badge.go { background: rgba(63,185,80,.15); color: var(--go); border: 1px solid var(--go); }
+  .decision-badge.hold { background: rgba(248,81,73,.15); color: var(--hold); border: 1px solid var(--hold); }
+  .decision-badge.off { background: rgba(139,148,158,.12); color: var(--dim); border: 1px solid var(--border); }
+
+  .axes { display: flex; flex-direction: column; gap: .45rem; }
+  .axis { display: grid; grid-template-columns: 58px 1fr 70px; gap: .5rem; align-items: center; }
+  .axis .name { color: var(--dim); font-size: .8rem; font-family: ui-monospace, monospace; }
+  .bar-track {
+    position: relative; height: 12px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  }
+  .bar-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); }
+  .bar-fill {
+    position: absolute; top: 1px; bottom: 1px; background: var(--accent);
+    border-radius: 4px; transition: all .4s;
+  }
+  .bar-fill.vetoed { background: var(--border); }
+  .axis .val { font-family: ui-monospace, monospace; font-size: .78rem; color: var(--dim); text-align: right; }
+
+  .contradiction {
+    margin-top: 1rem; padding: .8rem 1rem; border-radius: 8px;
+    border: 1px solid var(--warn); background: rgba(210,153,34,.1);
+    color: var(--warn); font-size: .95rem; display: none;
+  }
+  .contradiction.show { display: block; animation: pulse 1.6s ease-in-out infinite; }
+  .contradiction.vetoed {
+    border-color: var(--go); background: rgba(63,185,80,.08);
+    color: var(--go); animation: none;
+  }
+  @keyframes pulse { 50% { border-color: rgba(210,153,34,.35); } }
+
+  footer { margin-top: 1rem; color: var(--dim); font-size: .8rem; }
+  .status { color: var(--dim); font-size: .85rem; min-width: 130px; }
+  .spinner { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mind <span class="gap">the Gap</span></h1>
+  <p>a live debugger for what a robot policy believes vs. what it does</p>
+</header>
+
+<div class="controls">
+  <span class="group-label">Judge: flip the carton →</span>
+  <span id="scene-buttons"></span>
+  <select id="seed"></select>
+  <span class="status" id="status"></span>
+  <div class="gate-toggle">
+    <span class="group-label">Safety gate</span>
+    <label class="switch">
+      <input type="checkbox" id="gate-on">
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h2>What the model sees</h2>
+    <div class="frame-wrap"><img id="frame" alt="scene frame"></div>
+    <div class="frame-cap" id="frame-cap"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Internal belief — “can the item fit?”</h2>
+    <div class="belief-verdict" id="belief-verdict">—</div>
+    <div class="gauge">
+      <div class="gauge-track"></div>
+      <div class="gauge-zero" id="gauge-zero"></div>
+      <div class="gauge-needle" id="needle" style="left:50%"></div>
+    </div>
+    <div class="gauge-labels"><span>believes it fits</span><span>believes it cannot fit</span></div>
+    <div class="logit-num">probe logit: <b id="logit">—</b>
+      <span id="latency"></span></div>
+    <div id="decision" class="decision-badge off">gate off</div>
+    <div class="contradiction" id="contradiction"></div>
+  </div>
+
+  <div class="panel">
+    <h2 id="action-title">Planned action (7-DOF)</h2>
+    <div class="axes" id="axes"></div>
+  </div>
+</div>
+
+<footer>
+  The belief readout is a frozen linear probe on the policy's own hidden state — computed live per request.
+  Same forward pass produces the planned action; the gap between the two is the point.
+</footer>
+
+<script>
+const AXES = ["dx","dy","dz","droll","dpitch","dyaw","gripper"];
+const LOGIT_MIN = -20, LOGIT_MAX = 12;   // display range
+let state = { scene: "control", seed: 13, gateOn: false, last: null };
+
+const $ = id => document.getElementById(id);
+
+function axisRow(name) {
+  const row = document.createElement("div");
+  row.className = "axis";
+  row.innerHTML = `<span class="name">${name}</span>
+    <div class="bar-track"><div class="bar-mid"></div>
+      <div class="bar-fill" id="bar-${name}" style="left:50%;width:0"></div></div>
+    <span class="val" id="val-${name}">—</span>`;
+  return row;
+}
+AXES.forEach(a => $("axes").appendChild(axisRow(a)));
+
+function setBar(name, v, scale, vetoed) {
+  const bar = $(`bar-${name}`), val = $(`val-${name}`);
+  const frac = Math.max(-1, Math.min(1, v / scale)) * 50;
+  bar.className = "bar-fill" + (vetoed ? " vetoed" : "");
+  if (frac >= 0) { bar.style.left = "50%"; bar.style.width = frac + "%"; }
+  else { bar.style.left = (50 + frac) + "%"; bar.style.width = (-frac) + "%"; }
+  val.textContent = v.toFixed(4);
+}
+
+function render() {
+  const r = state.last;
+  if (!r) return;
+  const hazard = r.belief_logit > 0;
+  const v = $("belief-verdict");
+  v.textContent = hazard ? "CANNOT FIT — hazard" : "FITS";
+  v.className = "belief-verdict " + (hazard ? "hazard" : "fits");
+
+  const pct = 100 * (r.belief_logit - LOGIT_MIN) / (LOGIT_MAX - LOGIT_MIN);
+  $("needle").style.left = Math.max(1, Math.min(99, pct)) + "%";
+  $("gauge-zero").style.left = (100 * (0 - LOGIT_MIN) / (LOGIT_MAX - LOGIT_MIN)) + "%";
+  $("logit").textContent = r.belief_logit.toFixed(2);
+  $("latency").textContent = ` · live forward pass ${r.latency_ms} ms`;
+
+  const gateActive = state.gateOn;
+  const vetoed = gateActive && r.hold;
+  const d = $("decision");
+  if (!gateActive) { d.className = "decision-badge off"; d.textContent = "gate off"; }
+  else if (r.hold) { d.className = "decision-badge hold"; d.textContent = "HOLD — vetoed"; }
+  else { d.className = "decision-badge go"; d.textContent = "GO"; }
+
+  const acts = vetoed ? r.executed_action : r.planned_action;
+  $("action-title").textContent = vetoed
+    ? "Executed action (gate vetoed the plan)" : "Planned action (7-DOF)";
+  const scale = Math.max(0.05, ...AXES.map(a => Math.abs(r.planned_action[a])));
+  AXES.forEach(a => setBar(a, acts[a], scale, vetoed));
+
+  const c = $("contradiction");
+  const planMoves = AXES.slice(0, 6).some(a => Math.abs(r.planned_action[a]) > 1e-4);
+  if (hazard && planMoves && !vetoed) {
+    c.className = "contradiction show";
+    c.textContent = "⚠ The gap: the model's own hidden state says the item cannot fit — and its action head plans to pack it anyway.";
+  } else if (hazard && vetoed) {
+    c.className = "contradiction show vetoed";
+    c.textContent = "✓ Gate fired: the belief the policy wasn't using now vetoes the unsafe placement.";
+  } else {
+    c.className = "contradiction";
+  }
+}
+
+async function refresh() {
+  $("status").innerHTML = '<span class="spinner">running forward pass…</span>';
+  $("frame").src = `/api/frame/${state.scene}/${state.seed}?t=${Date.now()}`;
+  $("frame-cap").textContent = `scene: ${state.scene} · variant ${state.seed} — exact frame the policy receives`;
+  try {
+    const r = await fetch("/api/gate", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({scene: state.scene, seed: state.seed}),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    state.last = await r.json();
+    $("status").textContent = "";
+    render();
+  } catch (e) {
+    $("status").textContent = "engine error";
+    console.error(e);
+  }
+}
+
+async function init() {
+  const scenes = await (await fetch("/api/scenes")).json();
+  const sb = $("scene-buttons");
+  scenes.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "scene" + (s.id === state.scene ? " active" : "");
+    b.textContent = s.label + (s.id === "shallow" ? " (too shallow)" : "");
+    b.title = s.description;
+    b.onclick = () => {
+      state.scene = s.id;
+      document.querySelectorAll("button.scene").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      refresh();
+    };
+    sb.appendChild(b);
+  });
+  const seedSel = $("seed");
+  (scenes[0]?.seeds || [13]).forEach(s => {
+    const o = document.createElement("option");
+    o.value = s; o.textContent = "variant " + s;
+    seedSel.appendChild(o);
+  });
+  seedSel.onchange = () => { state.seed = parseInt(seedSel.value); refresh(); };
+  $("gate-on").onchange = e => { state.gateOn = e.target.checked; render(); };
+  refresh();
+}
+init();
+</script>
+</body>
+</html>
