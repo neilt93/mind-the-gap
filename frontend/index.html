@@ -961,7 +961,7 @@ async function load(autoplay) {
   $("scene-label").textContent = st.item === "cube"
     ? (st.mode === "wired"
        ? "SAFETY WIRE · OpenVLA-OFT on LIBERO · HOLD"
-       : "REAL MODEL RUN · OpenVLA-OFT on LIBERO · success")
+       : "REAL MODEL RUN · OpenVLA-OFT on LIBERO (robosuite sim) · recorded on this rig")
     : `VALIDATED ISAAC RUN · ${st.scene === "shallow" ? "shallow carton" : "deep carton"} · ${st.mode === "wired" ? "safety wire ON" : "native policy"}`;
   const dec = st.trace && st.trace.decision;
   $("eng-dec").textContent = dec
