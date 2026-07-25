@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mind the Gap — watch the knowledge-action gap emerge</title>
+<title>Mind the Gap: what a robot believes vs what it does</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0b0e14; --panel: #131720; --border: #2a3040;
+    --bg: #0d0e11; --panel: #14161b; --border: #262a31;
     --text: #eef2f8; --dim: #93a0b4;
-    --go: #3fd463; --bad: #ff6166; --warn: #f0b429; --accent: #4c9ffe;
+    --go: #34c26a; --bad: #ef5a60; --warn: #d9a325; --accent: #4e9bf0;
   }
   * { box-sizing: border-box; margin: 0; }
   html, body { height: 100%; }
@@ -26,7 +26,7 @@
   .brand { font-size: .85rem; font-weight: 800; letter-spacing: .16em; color: var(--accent); }
   .tagline { color: var(--dim); font-size: .9rem; }
 
-  .stage { display: grid; grid-template-columns: 1fr 340px; gap: .9rem; flex: 1; min-height: 0; }
+  .stage { display: grid; grid-template-columns: 1fr 400px; gap: .9rem; flex: 1; min-height: 0; }
   @media (max-width: 900px) { .stage { grid-template-columns: 1fr; } }
 
   .scene-wrap { position: relative; background: #000; border-radius: 12px;
@@ -61,10 +61,10 @@
     flex-direction: column; gap: .6rem; overflow-y: auto; }
   .trace h2 { font-size: .72rem; letter-spacing: .14em; color: var(--dim);
     text-transform: uppercase; }
-  .t-now { font-family: ui-monospace, monospace; font-size: 1.05rem;
-    color: var(--accent); font-weight: 700; }
+  .t-now { font-family: ui-monospace, monospace; font-size: .82rem;
+    color: var(--dim); font-weight: 700; }
   .rows { display: flex; flex-direction: column; gap: .4rem; }
-  .row { display: grid; grid-template-columns: 84px 1fr; gap: .6rem;
+  .row { display: grid; grid-template-columns: 76px 1fr; gap: .6rem;
     align-items: baseline; border-bottom: 1px solid var(--border);
     padding-bottom: .35rem; }
   .row b { color: var(--dim); font-size: .72rem; text-transform: uppercase;
@@ -178,33 +178,24 @@
   body {
     font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 15.5px; letter-spacing: .004em;
-    background:
-      radial-gradient(1100px 520px at 50% -12%, rgba(76,159,254,.10), transparent 60%),
-      radial-gradient(900px 480px at 88% 112%, rgba(63,212,99,.05), transparent 60%),
-      var(--bg);
+    background: var(--bg);
   }
   button, input, select { font-family: inherit; }
   .t-now, .time, .moments, code {
     font-family: "JetBrains Mono", ui-monospace, monospace;
   }
-  .brand { font-weight: 900; text-shadow: 0 0 26px rgba(76,159,254,.5); }
+  .brand { font-weight: 900; }
   .tagline { font-size: .92rem; letter-spacing: .01em; }
-  .freeze h2 { font-weight: 900; letter-spacing: -.012em;
-    text-shadow: 0 4px 30px rgba(0,0,0,.65); }
-  .freeze h2 .k { text-shadow: 0 0 28px rgba(255,97,102,.5); }
-  .row .v { font-size: 1.06rem; letter-spacing: .01em; transition: color .3s; }
+  .freeze h2 { font-weight: 900; letter-spacing: -.012em; }
+  .row .v { font-size: 1.16rem; letter-spacing: .01em; transition: color .3s; }
   .row b { opacity: .85; }
   .t-now { font-variant-numeric: tabular-nums; }
   .foot, .eng { line-height: 1.55; }
 
   /* --- surfaces & colour depth --- */
   .scene-wrap, .trace, .deck, .xp {
-    border-color: rgba(147,160,180,.16);
-    box-shadow: 0 10px 34px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.045);
-  }
-  .trace, .deck, .xp {
-    background: linear-gradient(180deg, rgba(255,255,255,.03),
-      rgba(255,255,255,0) 46%), var(--panel);
+    border-color: rgba(147,160,180,.13);
+    box-shadow: 0 8px 26px rgba(0,0,0,.32);
   }
   .scene-label { backdrop-filter: blur(6px); background: rgba(10,12,18,.66);
     border-color: rgba(147,160,180,.4); }
@@ -217,19 +208,11 @@
 
   /* video frame reacts to the story state */
   .scene-wrap { transition: box-shadow .6s, border-color .6s; }
-  .scene-wrap.danger { border-color: rgba(255,97,102,.55);
-    box-shadow: 0 0 0 1px rgba(255,97,102,.25), 0 0 46px rgba(255,97,102,.18),
-      0 10px 34px rgba(0,0,0,.42); }
-  .scene-wrap.safe { border-color: rgba(63,212,99,.5);
-    box-shadow: 0 0 0 1px rgba(63,212,99,.22), 0 0 46px rgba(63,212,99,.15),
-      0 10px 34px rgba(0,0,0,.42); }
+  .scene-wrap.danger { border-color: rgba(239,90,96,.5); }
+  .scene-wrap.safe { border-color: rgba(52,194,106,.45); }
 
   /* --- trace panel --- */
   .row { border-bottom-color: rgba(147,160,180,.12); padding-bottom: .45rem; }
-  .v.nofit { text-shadow: 0 0 18px rgba(255,97,102,.35); }
-  .v.hold { text-shadow: 0 0 18px rgba(63,212,99,.3); }
-  .gap-line.gap { box-shadow: 0 0 26px rgba(255,97,102,.15); }
-  .gap-line.veto { box-shadow: 0 0 26px rgba(63,212,99,.13); }
 
   /* timeline rail with dots */
   .moments { margin-top: .45rem; padding-left: .95rem; position: relative;
@@ -251,35 +234,29 @@
   /* --- deck: play button, slider, pills --- */
   .deck { gap: .9rem; padding: .65rem 1rem; }
   .deck button.play { width: 46px; height: 40px; border-radius: 999px;
-    background: var(--accent); color: #fff; border: 0;
-    box-shadow: 0 4px 18px rgba(76,159,254,.4); }
+    background: var(--accent); color: #fff; border: 0; }
   .deck button.play:hover { filter: brightness(1.12); }
   .deck .time { font-variant-numeric: tabular-nums; }
   .deck input[type=range] { -webkit-appearance: none; appearance: none;
     height: 22px; background: transparent; cursor: pointer; }
   .deck input[type=range]::-webkit-slider-runnable-track { height: 5px;
     border-radius: 3px;
-    background: linear-gradient(90deg, var(--accent) 0%,
-      rgba(76,159,254,.55) 55%, rgba(76,159,254,.18) 100%); }
+    background: rgba(78,155,240,.35); }
   .deck input[type=range]::-webkit-slider-thumb { -webkit-appearance: none;
     width: 16px; height: 16px; border-radius: 50%; background: #fff;
     margin-top: -5.5px; cursor: pointer;
-    box-shadow: 0 0 0 3px rgba(76,159,254,.4), 0 2px 10px rgba(0,0,0,.55); }
+    box-shadow: 0 0 0 2px rgba(78,155,240,.35), 0 2px 8px rgba(0,0,0,.45); }
   .deck input[type=range]::-moz-range-track { height: 5px; border-radius: 3px;
     background: rgba(76,159,254,.35); }
   .deck input[type=range]::-moz-range-thumb { width: 16px; height: 16px;
     border: 0; border-radius: 50%; background: #fff; cursor: pointer;
-    box-shadow: 0 0 0 3px rgba(76,159,254,.4); }
+    box-shadow: 0 0 0 2px rgba(78,155,240,.35); }
   .modes button, .scenes button { border-radius: 999px; padding: .5rem 1.05rem;
     transition: transform .06s, border-color .15s, color .15s, box-shadow .15s; }
   .modes button:hover, .scenes button:hover { transform: translateY(-1px); }
-  .modes button.active { box-shadow: 0 0 18px rgba(76,159,254,.22); }
-  .scenes button.active.nofit { box-shadow: 0 0 18px rgba(255,97,102,.2); }
-  .scenes button.active.fits { box-shadow: 0 0 18px rgba(63,212,99,.18); }
 
   /* --- drawer polish --- */
-  .side-handle { box-shadow: -2px 4px 22px rgba(0,0,0,.5),
-    0 0 18px rgba(76,159,254,.35); }
+  .side-handle { box-shadow: -2px 4px 18px rgba(0,0,0,.45); }
   #how-drawer { box-shadow: -18px 0 50px rgba(0,0,0,.55); }
   .drawer-head { backdrop-filter: blur(6px); background: rgba(11,14,20,.85); }
 
@@ -318,7 +295,7 @@
 
 <header>
   <span class="brand">MIND THE GAP</span>
-  <span class="tagline">watch a robot policy contradict its own hidden knowledge — then wire that knowledge back in</span>
+  <span class="tagline">what the robot believes vs what it does, in one trace</span>
 </header>
 
 <div class="stage">
@@ -336,20 +313,20 @@
     <h2>Robot trace</h2>
     <div class="t-now" id="tnow">t = 0.0s</div>
     <div class="rows">
-      <div class="row"><b>Sees</b><span class="v" id="r-sees">—</span></div>
-      <div class="row"><b>Believes</b><span class="v" id="r-belief">—</span></div>
-      <div class="row"><b>Plans</b><span class="v" id="r-plan">—</span></div>
-      <div class="row"><b>Executes</b><span class="v" id="r-exec">—</span></div>
+      <div class="row"><b>Sees</b><span class="v" id="r-sees">·</span></div>
+      <div class="row"><b>Believes</b><span class="v" id="r-belief">·</span></div>
+      <div class="row"><b>Plans</b><span class="v" id="r-plan">·</span></div>
+      <div class="row"><b>Executes</b><span class="v" id="r-exec">·</span></div>
     </div>
     <div class="explain" id="exec-explain"></div>
     <div class="gap-line" id="gap-line"></div>
     <div class="moments" id="moments"></div>
 
     <details class="concepts" id="concepts">
-      <summary>Concept probes — <b>1 validated</b> · 6 experimental</summary>
-      <div class="c-row"><span class="c-name">Fit hazard — “will it fit
-        safely?”<span class="c-tag val">VALIDATED</span></span>
-        <span class="c-val" id="c-fit_hazard">—</span></div>
+      <summary>Concept probes · <b>1 validated</b> · 6 experimental</summary>
+      <div class="c-row"><span class="c-name">Fit hazard: will it fit
+        safely?<span class="c-tag val">VALIDATED</span></span>
+        <span class="c-val" id="c-fit_hazard">·</span></div>
       <div class="c-row"><span class="c-name">Grasp success<span
         class="c-tag exp">EXPERIMENTAL</span></span>
         <span class="c-val pending" id="c-grasp_success">probe not yet fit</span></div>
@@ -368,18 +345,13 @@
       <div class="c-row"><span class="c-name">Goal completion<span
         class="c-tag exp">EXPERIMENTAL</span></span>
         <span class="c-val pending" id="c-goal_completion">probe not yet fit</span></div>
-      <div class="c-note">Experimental signals are preliminary probe outputs
-      and are not yet validated across held-out scenes. Only the fit-hazard
-      probe carries a validated claim. Motion labels above are
-      interpretations of the policy's action commands, not decoded
-      beliefs.</div>
+      <div class="c-note">Experimental signals are preliminary probe
+      outputs, not yet validated on held-out scenes. Motion labels describe
+      action commands, not beliefs.</div>
     </details>
 
-    <div class="foot">Belief = frozen linear probe on the policy's hidden state,
-      decoded at the episode's decision point; plan = the policy's own action
-      command; executes = the controller's measured phase this timestep.
-      Footage: validated Isaac run recorded under exactly this scene and wire
-      condition. All labels are measured quantities.</div>
+    <div class="foot">All labels are measured quantities.
+      Full explanation in the “?” side panel.</div>
   </div>
 </div>
 
@@ -404,14 +376,11 @@
 <details>
   <summary>Engineering details & provenance</summary>
   <div class="eng" id="eng">
-    Frozen probe (StandardScaler + logistic regression on one hidden-state row,
-    fit in pre-hack research; no retraining tonight) reads the VLA's belief at
-    the decision point; the wire turns that readout into a GO/HOLD veto.
-    <span id="eng-dec"></span><br>
-    Clips are recorded Isaac episodes under the exact scene + wire condition
-    (labeled; simulator execution takes ~2 min per episode, so it is replayed
-    while all neural readouts come from the recorded model-input frames).
-    Model's-eye per-step traces: <a href="/api/trace/native_shallow" style="color:var(--accent)">native</a> ·
+    Frozen probe (standardize + logistic regression on one hidden-state
+    row, fit in pre-hack research) reads the VLA's belief; the wire turns
+    that readout into a GO/HOLD veto.<span id="eng-dec"></span><br>
+    Clips are recorded runs under the labeled scene and wire condition.
+    Per-step traces: <a href="/api/trace/native_shallow" style="color:var(--accent)">native</a> ·
     <a href="/api/trace/wired_shallow" style="color:var(--accent)">wired</a>.
   </div>
 </details>
@@ -421,7 +390,7 @@
 
 <aside id="how-drawer">
   <div class="drawer-head">
-    <h2>Mind the Gap — how it all works</h2>
+    <h2>Mind the Gap: how it all works</h2>
     <button class="drawer-close" id="drawer-close">✕ close</button>
   </div>
 
@@ -430,12 +399,12 @@
     <p>A robot-arm policy (a vision-language-action network) looks at a table
     and outputs arm motions. In research before this hackathon we found that
     its internal activations contain a confident, linearly readable
-    <b>belief</b> about whether the item can fit the carton — and that when
+    <b>belief</b> about whether the item can fit the carton, and that when
     the carton is too shallow, the policy
     <span class="hl-warn">proceeds to pack it anyway</span>. This viewer
     plays validated simulator runs while decoding that belief from the
     policy's own forward pass, so you can watch knowledge and action diverge
-    — then <b>CONNECT BELIEF TO ACTION</b> shows the same belief, wired as a
+   , then <b>CONNECT BELIEF TO ACTION</b> shows the same belief, wired as a
     veto, preventing the hazard. <span class="hl-good">No retraining
     anywhere.</span></p>
   </div>
@@ -444,7 +413,7 @@
     <h2>What you're actually watching</h2>
     <ul>
       <li><b>The footage</b> is a recorded, validated Isaac-simulator run
-        under exactly the scene and wire condition shown on the label —
+        under exactly the scene and wire condition shown on the label,
         running the physics live takes ~2 minutes per episode, so the
         execution is replayed.</li>
       <li><b>The Robot trace panel is measured, not scripted.</b>
@@ -458,7 +427,7 @@
         JSONs are linked under Engineering details.</li>
       <li><b>NATIVE POLICY vs SAFETY WIRE</b> switch between the recorded
         run of the unmodified policy and the recorded run with the gate
-        connected — same scene, same starts.</li>
+        connected, same scene, same starts.</li>
     </ul>
   </div>
 
@@ -469,27 +438,27 @@
         <i>“pack the bottle into the carton.”</i></li>
       <li><b>The robot:</b> an SO-101 arm.</li>
       <li><b>The policy:</b> an OpenVLA-class network fine-tuned for this
-        task. Input: the camera image. Output: 7 numbers —
+        task. Input: the camera image. Output: 7 numbers,
         <code>dx dy dz droll dpitch dyaw gripper</code>.</li>
       <li><b>The two cartons:</b> <span class="hl-good">deep</span> (bottle
         fits) and <span class="hl-bad">shallow</span> (physically cannot
-        hold it — forcing the placement jams the bottle and drops it).</li>
+        hold it, forcing the placement jams the bottle and drops it).</li>
     </ul>
   </div>
 
   <div class="xp">
     <h2>How do you read a robot's mind?</h2>
-    <p>Every forward pass of the network produces <b>hidden states</b> —
+    <p>Every forward pass of the network produces <b>hidden states</b>,
     internal activation vectors at each layer. During prior research we
     captured those activations and fit a tiny frozen classifier
-    (standardize, then logistic regression — one weight vector and a bias)
+    (standardize, then logistic regression, one weight vector and a bias)
     on a single hidden-state row. It predicts “fits” vs “cannot fit” and has
     not been touched since: same <code>mean / scale / w / b</code> tonight
     as in every validation run.</p>
     <p>The engine applies that probe to the policy's forward pass on the
     run's decision frame and returns the <b>logit</b>: positive = “cannot
     fit”, negative = “fits”, magnitude = confidence. The margins are
-    enormous — around <span class="hl-good">−14 on the deep carton</span>
+    enormous, around <span class="hl-good">−14 on the deep carton</span>
     vs <span class="hl-bad">+7 on the shallow one</span>. The episodes shown
     were never used to fit the probe, and Engineering details prints this
     run's exact logit.</p>
@@ -497,19 +466,19 @@
 
   <div class="xp">
     <h2>What can the engine decode today?</h2>
-    <p><b>Validated (1):</b> the <b>fit hazard</b> belief — “will this item
-    fit safely in that carton?” — held-out validated (10/10 decisions,
+    <p><b>Validated (1):</b> the <b>fit hazard</b> belief, “will this item
+    fit safely in that carton?”, held-out validated (10/10 decisions,
     7+ logit margins). Everything in the demo rests on this probe and only
     this probe.</p>
     <p><b>Experimental candidates (6):</b> grasp success, target location,
-    collision risk, task progress, wrong object, goal completion — listed
+    collision risk, task progress, wrong object, goal completion, listed
     in the trace panel's <i>Concept probes</i> section. These are
     preliminary probe outputs and are <b>not yet validated across held-out
     scenes</b>; each needs its own labelled data and validation before we
     claim the model represents it.</p>
     <p>Separately, the engine translates the policy's <i>action commands</i>
     into readable motion concepts (moving toward the object, grasping,
-    carrying, releasing, GO vs HOLD) — those are interpretations of
+    carrying, releasing, GO vs HOLD), those are interpretations of
     outputs, not decoded beliefs, and the UI labels them as such.</p>
   </div>
 
@@ -519,7 +488,7 @@
     the same packing motion whether the belief says “fits” or “cannot fit”.
     In the prior research, steering the belief direction did not change
     behavior, and further fine-tuning failed to wire the belief into the
-    actions. The information is stranded — one linear readout away from the
+    actions. The information is stranded, one linear readout away from the
     motor commands, but disconnected from them.</p>
     <p>So when this robot damages the item, <i>“it didn't know”</i> is the
     wrong diagnosis. It knew. The knowledge just wasn't connected to
@@ -530,7 +499,7 @@
   <div class="xp">
     <h2>The fix: a safety gate made from the robot's own belief</h2>
     <p>The same frozen probe, run at the decision step as a GO/HOLD monitor:
-    if it reads “cannot fit”, the gate vetoes the motion — the movement
+    if it reads “cannot fit”, the gate vetoes the motion, the movement
     command is zeroed and the arm holds still. One linear layer plus a
     threshold; zero retraining.</p>
     <p>In the validation run before the hackathon: hazardous placement
@@ -549,7 +518,7 @@
     addresses live in the repo.</p>
     <p><b>Existed before the hackathon:</b> the policy, the probe, the
     research findings, and the validated runs' science.
-    <b>Built during the hackathon:</b> this viewer — UI, proxy, trace
+    <b>Built during the hackathon:</b> this viewer, UI, proxy, trace
     plumbing, and the thin HTTP wrapper on the server. The split is stated
     in the README, and the private repo's commit history proves the research
     predates tonight.</p>
@@ -558,13 +527,13 @@
   <div class="xp">
     <h2>Questions you might be asking</h2>
     <div class="q">Is the trace panel scripted to match the video?</div>
-    <div class="a">No — every label is a measured quantity: the belief logit
+    <div class="a">No, every label is a measured quantity: the belief logit
     comes from a real forward pass on the run's decision frame, and the
     Executes row and timeline moments come from the run's per-step
     controller trace (raw JSON linked under Engineering details).</div>
     <div class="q">Is the probe just detecting that the carton looks different?</div>
     <div class="a">That was tested: an identical probe trained with shuffled
-    labels — same pipeline, same features — fails to produce the
+    labels, same pipeline, same features, fails to produce the
     carton-conditional behavior. The specific belief content does the work.</div>
     <div class="q">Is this cherry-picked?</div>
     <div class="a">The gate's validation was preregistered: 10/10 decisions
@@ -574,17 +543,17 @@
     <div class="q">Why not just train the robot better?</div>
     <div class="a">Tried in the prior research: additional fine-tuning at
     multiple budgets did not wire the belief into behavior. The fix that
-    works is one frozen linear readout — which is the point: the knowledge
+    works is one frozen linear readout, which is the point: the knowledge
     was already there.</div>
     <div class="q">Does it generalize?</div>
     <div class="a">The same frozen readout transfers across sibling
     checkpoints of this policy family. It is anchored to the validated scene
-    layout, though — moving the carton elsewhere degrades the readout.
+    layout, though, moving the carton elsewhere degrades the readout.
     Honest limitation, stated as such.</div>
     <div class="q">Why does this matter beyond a demo?</div>
     <div class="a">It's a recipe: find a safety-relevant belief inside a
     policy, freeze a probe on it, and run it as a runtime monitor with veto
-    power — a safety layer extracted from the model itself, with no
+    power, a safety layer extracted from the model itself, with no
     retraining and sub-second overhead.</div>
   </div>
 
@@ -597,7 +566,7 @@
       <dt>Forward pass</dt>
       <dd>One run of the network: image in, action out.</dd>
       <dt>Hidden state</dt>
-      <dd>The network's internal activation vectors between layers — what it
+      <dd>The network's internal activation vectors between layers, what it
       “thinks” en route to its output.</dd>
       <dt>Linear probe</dt>
       <dd>A tiny frozen classifier (weights + bias) applied to a hidden
@@ -610,7 +579,7 @@
       <dd>The probe used as a veto: HOLD zeroes the motion command so the
       arm stays still; GO passes the plan through unchanged.</dd>
       <dt>Per-step trace</dt>
-      <dd>The run's recorded log — one entry per timestep with the
+      <dd>The run's recorded log, one entry per timestep with the
       controller's phase; it drives the Executes row and the timeline.</dd>
       <dt>Isaac Sim</dt>
       <dd>NVIDIA's robotics simulator, where the scenes, physics, and robot
@@ -638,7 +607,7 @@ const PHASE_LABEL = {
   CARTON_DESCEND: "forcing item into carton",
   CARTON_DESCEND_VERIFY: "forcing item into carton",
   OPEN: "releasing item", RETRACT: "retracting", DONE: "done",
-  REPOSITIONING: "repositioning arm", HOLD: "HOLD — motion vetoed",
+  REPOSITIONING: "repositioning arm", HOLD: "HOLD: motion vetoed",
   GRASP: "grasping item", CARRY: "carrying item",
   PLACE: "lowering to place", RELEASE: "releasing item",
   RETREAT: "retracting", IDLE: "idle",
@@ -650,10 +619,10 @@ const CARRY_PHASES = ["JOINT_HANDOFF", "CARTON_APPROACH",
 // Per-timestep interpretation of the MEASURED controller phase, read
 // against the latched belief. [normal, when-belief-says-no-fit].
 const PHASE_EXPLAIN = {
-  REPOSITIONING: ["Controller transit between task configurations — no interaction with the item."],
+  REPOSITIONING: ["Controller transit. No item interaction."],
   WARMSTART: ["Controller transit to the approach configuration."],
   APPROACH: ["Moving the gripper toward the bottle.",
-    "Moving the gripper toward the bottle — its hidden state already says the bottle won't fit the carton."],
+    "Moving toward the bottle. Its hidden state already says it will not fit."],
   DESCEND: ["Lowering onto the bottle to grasp it."],
   PRE_CLOSE_SETTLE: ["Lowering onto the bottle to grasp it."],
   CLOSE: ["Closing the gripper on the bottle.",
@@ -663,27 +632,27 @@ const PHASE_EXPLAIN = {
   LOAD_SETTLE: ["Lifting the bottle off the table."],
   JOINT_HANDOFF: ["Switching to the carry configuration."],
   CARTON_APPROACH: ["Carrying the bottle toward the carton.",
-    "Carrying the bottle toward the carton — while its own hidden state reads “cannot fit”. The gap is live."],
+    "Carrying toward the carton while its hidden state reads cannot fit."],
   CARTON_DESCEND: ["Lowering the bottle into the carton.",
-    "Forcing the bottle down into a carton its own belief says cannot hold it — the gap at its widest."],
+    "Forcing the bottle into a carton it believes cannot hold it."],
   CARTON_DESCEND_VERIFY: ["Lowering the bottle into the carton.",
     "Still forcing the placement its own belief says is impossible."],
   OPEN: ["Releasing the bottle inside the carton.",
-    "Releasing the bottle over the too-shallow carton — this is where it jams and drops."],
-  RETRACT: ["Pulling back — task motion finished."],
+    "Releasing over the too-shallow carton. This is the jam and drop."],
+  RETRACT: ["Pulling back. Motion finished."],
   DONE: ["Episode complete."],
-  HOLD: ["The safety wire read “cannot fit” from the hidden state at t=0 and zeroed the motion command — the arm holds still for the entire episode. This stillness IS the intervention."],
+  HOLD: ["The wire read cannot fit at t=0 and zeroed the motion. The stillness is the intervention."],
   // Derived-phase vocabulary for end-to-end policy rollouts
   // (SimplerEnv adapter): phases come from measured per-step actions.
   GRASP: ["Closing the gripper on the item.",
     "Closing the gripper on an item its own belief says has nowhere to go."],
   CARRY: ["Carrying the item toward the target.",
-    "Carrying the item toward a container its own hidden state says cannot hold it — the gap is live."],
+    "Carrying toward a container its hidden state says cannot hold it."],
   PLACE: ["Lowering the item to place it.",
-    "Forcing a placement its own belief says is impossible — the gap at its widest."],
+    "Forcing a placement it believes is impossible."],
   RELEASE: ["Releasing the item.",
     "Releasing the item over the infeasible target."],
-  RETREAT: ["Pulling back — motion finished."],
+  RETREAT: ["Pulling back. Motion finished."],
   IDLE: ["Holding position."],
 };
 
@@ -730,7 +699,7 @@ function deriveMoments() {
     label: "⚠ Forcing item into a carton it cannot enter"});
   const hold = firstAt(["HOLD"]);
   if (hold != null) M.push({t: Math.max(0.2, hold), cls: "stop",
-    label: "■ Safety wire HOLD — motion vetoed"});
+    label: "■ Safety wire HOLD: motion vetoed"});
   return M.sort((a, b) => a.t - b.t);
 }
 
@@ -746,12 +715,12 @@ function render(t) {
       $("r-belief").textContent = "wire decision: HOLD (probe +7.49, validated scene)";
       $("r-belief").className = "v hold";
       $("gap-line").className = "gap-line veto";
-      $("gap-line").textContent = "\u2713 motion vetoed by the safety wire \u2014 the robot never starts";
+      $("gap-line").textContent = "\u2713 motion vetoed by the safety wire. The robot never starts.";
     } else {
-      $("r-belief").textContent = "\u2014 (no probe fit on this domain yet)";
+      $("r-belief").textContent = "no probe fit on this domain yet";
       $("r-belief").className = "v";
     }
-    $("r-plan").textContent = "OpenVLA-OFT — fine-tuned VLA, end-to-end";
+    $("r-plan").textContent = "OpenVLA-OFT, end-to-end";
     const phC = phaseAt(t);
     $("r-exec").textContent = phC
       ? (PHASE_LABEL[phC] || phC.toLowerCase())
@@ -780,14 +749,14 @@ function render(t) {
     ? "bottle + carton (too shallow)" : "bottle + deep carton";
   const rb = $("r-belief");
   rb.innerHTML = (hazard ? "ITEM WILL NOT FIT" : "ITEM FITS") +
-    `<span class="latch">frozen probe on its hidden state · decided at t=0` +
+    `<span class="latch">frozen probe · t=0` +
     (dec ? ` · logit ${dec.belief_logit > 0 ? "+" : ""}${(+dec.belief_logit).toFixed(1)}` : "") +
-    ` · latched for the episode</span>`;
+    ` · latched</span>`;
   rb.className = "v " + (hazard ? "nofit" : "fits");
   $("r-plan").textContent = "move item into carton";
   const ph = phaseAt(t);
   const re = $("r-exec");
-  re.textContent = ph ? (PHASE_LABEL[ph] || ph.toLowerCase()) : "—";
+  re.textContent = ph ? (PHASE_LABEL[ph] || ph.toLowerCase()) : "·";
   re.className = "v " + (ph === "HOLD" ? "hold" :
     (hazard && CARRY_PHASES.includes(ph) ? "warn" : ""));
 
@@ -802,13 +771,13 @@ function render(t) {
   const g = $("gap-line");
   if (ph === "HOLD" && hazard) {
     g.className = "gap-line veto";
-    g.textContent = "✓ HAZARD PREVENTED — the ignored belief now vetoes the action";
+    g.textContent = "✓ HAZARD PREVENTED. The belief now vetoes the action.";
   } else if (hazard && ph && ph !== "HOLD") {
     g.className = "gap-line gap";
-    g.textContent = "⚠ KNOWLEDGE-ACTION GAP — belief says no-fit, action continues";
+    g.textContent = "⚠ IT KNOWS. IT ACTS ANYWAY.";
   } else if (!hazard && ph) {
     g.className = "gap-line agree";
-    g.textContent = "belief and action agree — safe placement";
+    g.textContent = "belief and action agree";
   } else { g.className = "gap-line"; }
 
   const wrap = document.querySelector(".scene-wrap");
@@ -824,7 +793,7 @@ function render(t) {
     cf.textContent = (hazard ? "NO-FIT " : "FIT ") +
       `${dec.belief_logit > 0 ? "+" : ""}${(+dec.belief_logit).toFixed(1)}`;
     cf.className = "c-val " + (hazard ? "nofit" : "fits");
-  } else { cf.textContent = "—"; cf.className = "c-val pending"; }
+  } else { cf.textContent = "·"; cf.className = "c-val pending"; }
   const cx = (dec && dec.concepts) || {};
   ["grasp_success", "target_location", "collision_risk", "task_progress",
    "wrong_object", "goal_completion"].forEach(k => {
@@ -880,9 +849,9 @@ async function load(autoplay) {
     `<div class="m ${m.cls}">t=${m.t.toFixed(1)}s  ${m.label}</div>`).join("");
   $("scene-label").textContent = st.item === "cube"
     ? (st.mode === "wired"
-       ? "SAFETY WIRE — OpenVLA-OFT on LIBERO · motion vetoed (HOLD)"
-       : "REAL MODEL RUN — OpenVLA-OFT on LIBERO · recorded on this rig · success")
-    : `VALIDATED ISAAC RUN — ${st.scene === "shallow" ? "shallow carton" : "deep carton"} · ${st.mode === "wired" ? "safety wire ON" : "native policy"}`;
+       ? "SAFETY WIRE · OpenVLA-OFT on LIBERO · HOLD"
+       : "REAL MODEL RUN · OpenVLA-OFT on LIBERO · success")
+    : `VALIDATED ISAAC RUN · ${st.scene === "shallow" ? "shallow carton" : "deep carton"} · ${st.mode === "wired" ? "safety wire ON" : "native policy"}`;
   const dec = st.trace && st.trace.decision;
   $("eng-dec").textContent = dec
     ? ` This run's decision: logit ${dec.belief_logit} → ${dec.decision} (validated scene frame, live forward pass).`
