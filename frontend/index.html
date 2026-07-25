@@ -282,6 +282,14 @@
     0 0 18px rgba(76,159,254,.35); }
   #how-drawer { box-shadow: -18px 0 50px rgba(0,0,0,.55); }
   .drawer-head { backdrop-filter: blur(6px); background: rgba(11,14,20,.85); }
+
+  /* per-timestep interpretation line + latched-belief chip */
+  .explain { color: var(--dim); font-size: .82rem; line-height: 1.45;
+    min-height: 2.6em; padding: .1rem .1rem 0; }
+  .explain.hazard { color: var(--warn); }
+  .explain.safe { color: var(--go); }
+  .latch { display: block; font-size: .66rem; color: var(--dim);
+    font-weight: 600; letter-spacing: .03em; margin-top: .12rem; }
 </style>
 </head>
 <body>
@@ -311,6 +319,7 @@
       <div class="row"><b>Plans</b><span class="v" id="r-plan">—</span></div>
       <div class="row"><b>Executes</b><span class="v" id="r-exec">—</span></div>
     </div>
+    <div class="explain" id="exec-explain"></div>
     <div class="gap-line" id="gap-line"></div>
     <div class="moments" id="moments"></div>
     <div class="foot">Belief = frozen linear probe on the policy's hidden state,
@@ -563,6 +572,34 @@ const PHASE_LABEL = {
 const CARRY_PHASES = ["JOINT_HANDOFF", "CARTON_APPROACH",
                       "CARTON_DESCEND", "CARTON_DESCEND_VERIFY"];
 
+// Per-timestep interpretation of the MEASURED controller phase, read
+// against the latched belief. [normal, when-belief-says-no-fit].
+const PHASE_EXPLAIN = {
+  REPOSITIONING: ["Controller transit between task configurations — no interaction with the item."],
+  WARMSTART: ["Controller transit to the approach configuration."],
+  APPROACH: ["Moving the gripper toward the bottle.",
+    "Moving the gripper toward the bottle — its hidden state already says the bottle won't fit the carton."],
+  DESCEND: ["Lowering onto the bottle to grasp it."],
+  PRE_CLOSE_SETTLE: ["Lowering onto the bottle to grasp it."],
+  CLOSE: ["Closing the gripper on the bottle.",
+    "Closing the gripper on a bottle its own belief says has nowhere to go."],
+  ATTACH_VERIFY: ["Verifying the grasp."],
+  LIFT: ["Lifting the bottle off the table."],
+  LOAD_SETTLE: ["Lifting the bottle off the table."],
+  JOINT_HANDOFF: ["Switching to the carry configuration."],
+  CARTON_APPROACH: ["Carrying the bottle toward the carton.",
+    "Carrying the bottle toward the carton — while its own hidden state reads “cannot fit”. The gap is live."],
+  CARTON_DESCEND: ["Lowering the bottle into the carton.",
+    "Forcing the bottle down into a carton its own belief says cannot hold it — the gap at its widest."],
+  CARTON_DESCEND_VERIFY: ["Lowering the bottle into the carton.",
+    "Still forcing the placement its own belief says is impossible."],
+  OPEN: ["Releasing the bottle inside the carton.",
+    "Releasing the bottle over the too-shallow carton — this is where it jams and drops."],
+  RETRACT: ["Pulling back — task motion finished."],
+  DONE: ["Episode complete."],
+  HOLD: ["The safety wire read “cannot fit” from the hidden state at t=0 and zeroed the motion command — the arm holds still for the entire episode. This stillness IS the intervention."],
+};
+
 let st = { scene: "shallow", mode: "native", item: "bottle",
            trace: null, frozeOnce: false };
 
@@ -622,6 +659,8 @@ function render(t) {
     $("r-plan").textContent = "official pick-place controller";
     $("r-exec").textContent = "clean pick and place";
     $("r-exec").className = "v";
+    $("exec-explain").textContent = "";
+    $("exec-explain").className = "explain";
     $("gap-line").className = "gap-line";
     const dur2 = v.duration || 0;
     $("time").textContent = `${t.toFixed(1)} / ${dur2.toFixed(1)}s`;
@@ -631,7 +670,10 @@ function render(t) {
   $("r-sees").textContent = st.scene === "shallow"
     ? "bottle + carton (too shallow)" : "bottle + deep carton";
   const rb = $("r-belief");
-  rb.textContent = hazard ? "ITEM WILL NOT FIT" : "ITEM FITS";
+  rb.innerHTML = (hazard ? "ITEM WILL NOT FIT" : "ITEM FITS") +
+    `<span class="latch">frozen probe on its hidden state · decided at t=0` +
+    (dec ? ` · logit ${dec.belief_logit > 0 ? "+" : ""}${(+dec.belief_logit).toFixed(1)}` : "") +
+    ` · latched for the episode</span>`;
   rb.className = "v " + (hazard ? "nofit" : "fits");
   $("r-plan").textContent = "move item into carton";
   const ph = phaseAt(t);
@@ -639,6 +681,14 @@ function render(t) {
   re.textContent = ph ? (PHASE_LABEL[ph] || ph.toLowerCase()) : "—";
   re.className = "v " + (ph === "HOLD" ? "hold" :
     (hazard && CARRY_PHASES.includes(ph) ? "warn" : ""));
+
+  const exArr = PHASE_EXPLAIN[ph];
+  const exEl = $("exec-explain");
+  if (ph && exArr) {
+    exEl.textContent = (hazard && exArr[1]) ? exArr[1] : exArr[0];
+    exEl.className = "explain" + (ph === "HOLD" ? " safe"
+      : (hazard && exArr[1] ? " hazard" : ""));
+  } else { exEl.textContent = ""; exEl.className = "explain"; }
 
   const g = $("gap-line");
   if (ph === "HOLD" && hazard) {
