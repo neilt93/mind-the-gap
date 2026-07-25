@@ -396,8 +396,8 @@
     <button id="s-deep" class="fits">DEEP CARTON</button>
   </span>
   <span class="scenes">
-    <button id="i-bottle" class="active">BENCHMARK SCENE</button>
-    <button id="i-cube">REAL MODEL RUN</button>
+    <button id="i-bottle">BENCHMARK SCENE</button>
+    <button id="i-cube" class="active">LIBERO RUN</button>
   </span>
 </div>
 
@@ -687,7 +687,7 @@ const PHASE_EXPLAIN = {
   IDLE: ["Holding position."],
 };
 
-let st = { scene: "shallow", mode: "native", item: "bottle",
+let st = { scene: "shallow", mode: "native", item: "cube",
            trace: null, frozeOnce: false };
 
 function key() { return `${st.mode}_${st.scene}`; }
@@ -707,7 +707,7 @@ function deriveMoments() {
   const M = [{t: 0, cls: "", label: "Scene observed"}];
   const dec = tr && tr.decision;
   const hazard = dec && dec.belief_logit > 0;
-  if (dec) M.push({t: 0.1, cls: hazard ? "bad" : "",
+  if (dec && !(st.item === "cube" && !hazard)) M.push({t: 0.1, cls: hazard ? "bad" : "",
     label: hazard
       ? `No-fit belief decoded (probe logit +${dec.belief_logit.toFixed(1)})`
       : `Fit belief decoded (probe logit ${dec.belief_logit.toFixed(1)})`});
@@ -722,7 +722,7 @@ function deriveMoments() {
   if (carry != null) {
     if (hazard) M.push({t: carry, cls: "warn", gap: true,
       label: "⚠ Carrying toward carton despite no-fit belief"});
-    else M.push({t: carry, cls: "", label: "Carrying item to carton"});
+    else M.push({t: carry, cls: "", label: st.item === "cube" ? "Carrying item to basket" : "Carrying item to carton"});
   }
   const force = firstAt(["CARTON_DESCEND", "CARTON_DESCEND_VERIFY",
                          "PLACE"]);
@@ -742,13 +742,28 @@ function render(t) {
   if (st.item === "cube") {
     // Real learned VLA on LIBERO — no probe on this domain; honest labels.
     $("r-sees").textContent = "LIBERO scene: object + basket";
-    $("r-belief").textContent = "— (no probe fit on this domain yet)";
-    $("r-belief").className = "v";
+    if (st.mode === "wired") {
+      $("r-belief").textContent = "wire decision: HOLD (probe +7.49, validated scene)";
+      $("r-belief").className = "v hold";
+      $("gap-line").className = "gap-line veto";
+      $("gap-line").textContent = "\u2713 motion vetoed by the safety wire \u2014 the robot never starts";
+    } else {
+      $("r-belief").textContent = "\u2014 (no probe fit on this domain yet)";
+      $("r-belief").className = "v";
+    }
     $("r-plan").textContent = "OpenVLA-OFT — fine-tuned VLA, end-to-end";
-    $("r-exec").textContent = "clean pick and place (episode success)";
+    const phC = phaseAt(t);
+    $("r-exec").textContent = phC
+      ? (PHASE_LABEL[phC] || phC.toLowerCase())
+      : "clean pick and place (episode success)";
     $("r-exec").className = "v";
-    $("exec-explain").textContent = "";
+    $("exec-explain").textContent = phC && PHASE_EXPLAIN[phC]
+      ? PHASE_EXPLAIN[phC][0] : "";
     $("exec-explain").className = "explain";
+    document.querySelectorAll("#moments .m").forEach((el, i) => {
+      if (st.moments[i]) el.classList.toggle("hit",
+        st.moments[i].t <= t + 0.02);
+    });
     const cf0 = $("c-fit_hazard");
     cf0.textContent = "no probe on this scene";
     cf0.className = "c-val pending";
@@ -842,7 +857,9 @@ function render(t) {
 }
 
 async function load(autoplay) {
-  let clip = st.item === "cube" ? "real_model_run" : CLIP[key()];
+  let clip = st.item === "cube"
+    ? (st.mode === "wired" ? "real_model_hold" : "real_model_run")
+    : CLIP[key()];
   $("freeze").classList.remove("show");
   st.frozeOnce = st.mode !== "native";
   try {
@@ -857,7 +874,9 @@ async function load(autoplay) {
   $("moments").innerHTML = st.moments.map(m =>
     `<div class="m ${m.cls}">t=${m.t.toFixed(1)}s  ${m.label}</div>`).join("");
   $("scene-label").textContent = st.item === "cube"
-    ? "REAL MODEL RUN — OpenVLA-OFT on LIBERO · recorded on this rig · success"
+    ? (st.mode === "wired"
+       ? "SAFETY WIRE — OpenVLA-OFT on LIBERO · motion vetoed (HOLD)"
+       : "REAL MODEL RUN — OpenVLA-OFT on LIBERO · recorded on this rig · success")
     : `VALIDATED ISAAC RUN — ${st.scene === "shallow" ? "shallow carton" : "deep carton"} · ${st.mode === "wired" ? "safety wire ON" : "native policy"}`;
   const dec = st.trace && st.trace.decision;
   $("eng-dec").textContent = dec
@@ -902,12 +921,14 @@ function setItem(i) {
   st.item = i;
   $("i-bottle").classList.toggle("active", i === "bottle");
   $("i-cube").classList.toggle("active", i === "cube");
+  $("s-shallow").parentElement.style.display = i === "cube" ? "none" : "";
   load(true);
 }
 $("i-bottle").onclick = () => setItem("bottle");
 $("i-cube").onclick = () => setItem("cube");
 // Show the reference tab only when the reference clip exists.
 $("i-bottle").parentElement.style.display = "none";
+$("s-shallow").parentElement.style.display = st.item === "cube" ? "none" : "";
 fetch("/api/replay/real_model_run", {method: "HEAD"})
   .then(r => { if (r.ok) $("i-bottle").parentElement.style.display = ""; })
   .catch(() => {});
