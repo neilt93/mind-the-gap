@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 ENGINE_URL = os.environ.get("ENGINE_URL", "http://127.0.0.1:8791")
+LIVE_URL = os.environ.get("LIVE_URL", "http://127.0.0.1:8792")
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 
 app = FastAPI(title="mind-the-gap")
@@ -64,6 +65,41 @@ def replay(key: str):
     r = httpx.get(f"{ENGINE_URL}/replay/{key}", timeout=60.0)
     return Response(r.content, media_type="video/mp4",
                     status_code=r.status_code)
+
+
+@app.get("/api/live/status")
+def live_status():
+    try:
+        r = httpx.get(f"{LIVE_URL}/status", timeout=5.0)
+        return Response(r.content, media_type="application/json")
+    except httpx.ConnectError:
+        return {"state": "OFFLINE"}
+
+
+@app.get("/api/live/frame")
+def live_frame():
+    try:
+        r = httpx.get(f"{LIVE_URL}/frame", timeout=5.0)
+        return Response(r.content, media_type="image/jpeg",
+                        status_code=r.status_code)
+    except httpx.ConnectError:
+        raise HTTPException(502, "live worker unreachable")
+
+
+class LiveStartReq(BaseModel):
+    scene: str
+    safety_enabled: bool = True
+
+
+@app.post("/api/live/start")
+def live_start(req: LiveStartReq):
+    try:
+        r = httpx.post(f"{LIVE_URL}/episode/start",
+                       json=req.model_dump(), timeout=10.0)
+        return Response(r.content, media_type="application/json",
+                        status_code=r.status_code)
+    except httpx.ConnectError:
+        raise HTTPException(502, "live worker unreachable")
 
 
 @app.get("/api/health")

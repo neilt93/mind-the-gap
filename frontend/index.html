@@ -145,6 +145,21 @@
     border-radius: 10px; font-size: .9rem;
   }
 
+  /* ---------- live isaac ---------- */
+  .live-isaac { margin-top: 1rem; padding-top: .8rem;
+                border-top: 1px solid var(--border); }
+  .live-status { margin-top: .5rem; font-size: .95rem; font-weight: 700; }
+  .live-status.holding { color: var(--go-bright); }
+  .live-status.hazard { color: var(--warn); }
+  .run-live {
+    display: block; width: 100%; margin-top: .7rem; padding: .8rem;
+    font-size: 1rem; font-weight: 800; color: var(--text);
+    background: var(--panel); border: 2px solid var(--accent);
+    border-radius: 10px; cursor: pointer;
+  }
+  .run-live:hover { background: rgba(76,159,254,.12); }
+  .run-live:disabled { opacity: .45; cursor: default; }
+
   /* ---------- engineering drawer ---------- */
   details { margin-top: 1.2rem; color: var(--dim); }
   details summary { cursor: pointer; font-size: .85rem; font-weight: 700;
@@ -193,6 +208,17 @@ turns ignored knowledge into a live safety intervention.</p>
       <span class="callout" id="lab-carton" style="left:27%; top:21%;">CARTON</span>
       <span class="callout bad" id="lab-shallow" style="left:45%; top:38%; display:none;">TOO SHALLOW</span>
       <span class="callout" id="lab-item" style="left:11%; top:46%;">ITEM</span>
+    </div>
+
+    <div class="live-isaac" id="live-panel" style="display:none">
+      <div class="tag"><span class="live-dot"></span> LIVE ISAAC RUN — persistent simulator</div>
+      <img id="live-frame" style="width:100%; border-radius:10px; background:#000; aspect-ratio:4/3; object-fit:contain; display:none" alt="live isaac">
+      <div class="live-status" id="live-status">warming up…</div>
+      <button class="run-live" id="run-live-btn">▶ RUN LIVE — fresh reset, fresh inference, live execution</button>
+      <div class="honesty">This mode is fully live: the persistent simulator
+      resets the scene, the model runs on the freshly rendered frame, and the
+      decision executes in the simulator in real time. A full placement or
+      hazardous attempt takes 60–90 s; HOLD is near-immediate.</div>
     </div>
 
     <div class="replay">
@@ -413,6 +439,68 @@ $("eng-medium").onclick = () => {
 };
 
 refresh();
+
+/* ---------- LIVE ISAAC mode ---------- */
+let livePoll = null, framePoll = null;
+
+const LIVE_STATUS_TEXT = {
+  RESETTING: "Resetting scene…",
+  READY: "Scene ready — press RUN LIVE",
+  INFERRING: "Running live inference…",
+  HOLD: "Safety decision: HOLD — robot stays still",
+  EXECUTING: "Executing in simulator…",
+  COMPLETED: "Run complete.",
+  FAILED: "Run failed — see engineering details.",
+};
+
+function liveStatusLine(s) {
+  let txt = LIVE_STATUS_TEXT[s.state] || s.state;
+  const cls = s.state === "HOLD" ? "holding"
+            : (s.state === "EXECUTING" && s.scene === "shallow") ? "hazard" : "";
+  if (s.state === "EXECUTING" && s.scene === "shallow")
+    txt = "⚠ Knowledge-action gap — hazardous attempt executing live…";
+  if (s.state === "COMPLETED" && s.result)
+    txt = s.result.outcome === "held"
+      ? "✓ HAZARD PREVENTED — live HOLD, robot never moved (" + s.result.episode_s + " s)"
+      : "Run complete (" + s.result.episode_s + " s).";
+  if (s.decision && s.state !== "RESETTING")
+    txt += `  ·  live belief logit ${s.decision.belief_logit} → ${s.decision.decision}`;
+  const el = $("live-status");
+  el.textContent = txt;
+  el.className = "live-status " + cls;
+}
+
+function pollLive() {
+  fetch("/api/live/status").then(r => r.json()).then(s => {
+    const panel = $("live-panel");
+    if (s.state === "OFFLINE") { panel.style.display = "none"; return; }
+    panel.style.display = "block";
+    liveStatusLine(s);
+    const busy = ["RESETTING", "INFERRING", "HOLD", "EXECUTING"].includes(s.state);
+    $("run-live-btn").disabled = busy;
+    if (busy && !framePoll) {
+      framePoll = setInterval(() => {
+        const img = $("live-frame");
+        img.style.display = "block";
+        img.src = `/api/live/frame?t=${Date.now()}`;
+      }, 400);
+    } else if (!busy && framePoll) {
+      clearInterval(framePoll); framePoll = null;
+    }
+  }).catch(() => {});
+}
+
+$("run-live-btn").onclick = async () => {
+  const scene = state.scene === "shallow" ? "shallow" : "control";
+  $("run-live-btn").disabled = true;
+  await fetch("/api/live/start", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({scene, safety_enabled: state.gateOn}),
+  });
+};
+
+pollLive();
+livePoll = setInterval(pollLive, 1000);
 </script>
 </body>
 </html>
