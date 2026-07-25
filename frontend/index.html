@@ -28,10 +28,11 @@
 
   .scene-wrap { position: relative; background: #000; border-radius: 12px;
     overflow: hidden; border: 1px solid var(--border);
-    aspect-ratio: 16 / 10; max-height: 74vh; align-self: center;
+    aspect-ratio: 16 / 10; max-height: 74vh; align-self: start;
     width: 100%; }
   .scene-wrap video { width: 100%; height: 100%; object-fit: cover;
-    object-position: 45% 42%; display: block; position: absolute; inset: 0; }
+    object-position: 45% 42%; display: block; position: absolute; inset: 0;
+    transform: scale(1.6); transform-origin: 44% 50%; }
   .scene-label { position: absolute; top: .7rem; left: .8rem;
     font-size: .72rem; font-weight: 800; letter-spacing: .1em;
     padding: .25rem .6rem; border-radius: 6px;
