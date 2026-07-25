@@ -384,13 +384,6 @@
     <div class="gap-line" id="gap-line"></div>
     <div class="moments" id="moments"></div>
 
-    <details class="concepts" id="concepts" open>
-      <summary>Concept probes · <b>1 validated</b></summary>
-      <div class="c-row"><span class="c-name">Fit hazard: will it fit
-        safely?<span class="c-tag val">VALIDATED</span></span>
-        <span class="c-val" id="c-fit_hazard">·</span></div>
-      </details>
-
     <div class="foot">All labels are measured quantities.
       Full explanation in the “?” side panel.</div>
   </div>
@@ -854,7 +847,7 @@ function render(t) {
         el.style.display = on ? "" : "none";
       }
     });
-    const cf0 = $("c-fit_hazard");
+    const cf0 = { textContent: "", className: "" };
     cf0.textContent = "no probe on this scene";
     cf0.className = "c-val pending";
     $("gap-line").className = "gap-line";
